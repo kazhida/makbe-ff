@@ -2,32 +2,43 @@
 // All right reserved.
 //
 
-use crate::device::Device;
-use std::cell::RefCell;
-use embedded_hal::blocking::i2c::{Write, WriteRead};
+use crate::device::{Device, State};
+use crate::device::State::Pins;
+use crate::i2c::I2C;
+use core::cell::RefCell;
+use crate::switch::Switch;
 
+/// TCA9555
+/// PCA9555も同じ
 pub struct TCA9555 {
     dev_addr: u8,
-    register: [bool; 16]
+    register: [bool; 16],
+    switches: [Switch; 16]
 }
 
-impl Device for TCA9555 {
+/// I2Cの実装がMCU（チップセット）毎にバラバラなので、エラーの型をジェネリクスのパラメータで渡す形になってしまう
+impl<I2cError> Device<'static, I2cError> for TCA9555 {
 
-
-    fn init_pins(&self, i2cm: &RefCell<dyn Write>) -> Result<(), Write::Error> {
+    fn init_device(&self, i2cm: &RefCell<dyn I2C<I2cError>>) -> Result<(), I2cError> {
         // All input
         let mut s = i2cm.borrow_mut();
         s.write(self.dev_addr, &[0x06u8, 0xFFu8])?;
         s.write(self.dev_addr, &[0x07u8, 0xFFu8])
     }
 
-    fn read_pins(&mut self, i2cm: &RefCell<dyn WriteRead>) -> Result<&[bool], WriteRead::Error> {
+    fn read_device(&mut self, i2cm: &RefCell<dyn I2C<I2cError>>) -> Result<State, I2cError> {
         let reg_addr = &[0x00u8];
-        let mut data = &[0x00u8, 0x00u8];
-        i2cm.write_read(self.dev_addr, reg_addr, data)?;
+        let data = &mut [0x00u8, 0x00u8];
+        let mut s = i2cm.borrow_mut();
+        s.write_read(self.dev_addr, reg_addr, data)?;
 
         // todo: registerにboolの配列として格納する
 
-        Ok(&self.register)
+        Ok(Pins(&self.register))
+    }
+
+    fn assign(&mut self, pin: usize, switch: Switch) -> Result<Switch, Switch> {
+        self.switches[pin] = switch.clone();
+        Ok(switch)
     }
 }
