@@ -6,6 +6,7 @@ use crate::switch::Shape::Rectangle;
 use keyberon::action::Action;
 use heapless::Vec;
 use heapless::consts::U4;
+use keyberon::action::Action::{NoOp, Trans};
 
 /// # キーの形状
 ///
@@ -33,13 +34,28 @@ pub struct Switch {
     w: f32,
     h: f32,
     r: f32,
-    actions: Vec<Action, U4>
+    actions: Vec<Action, U4>,
+    default_action: Action
 }
 
 impl Switch {
 
+    /// 何もしないダミーキー（Device内の初期値とかに使用する）
+    pub fn dummy() -> Self {
+        Self {
+            shape: Rectangle,
+            x: 0.0,
+            y: 0.0,
+            w: 0.0,
+            h: 0.0,
+            r: 0.0,
+            actions: Vec::new(),
+            default_action: NoOp
+        }
+    }
+
     /// 位置を指定してインスタンスを生成
-    fn new(x: f32, y: f32) -> Self {
+    pub fn new(x: f32, y: f32) -> Self {
         Self {
             shape: Rectangle,
             x,
@@ -47,12 +63,33 @@ impl Switch {
             w: 1.0,
             h: 1.0,
             r: 0.0,
-            actions: Vec::new()
+            actions: Vec::new(),
+            default_action: Trans
+        }
+    }
+
+    /// 位置を指定してインスタンスを生成
+    pub fn new_with_shape(shape: Shape, x: f32, y: f32) -> Self {
+        Self {
+            shape,
+            x,
+            y,
+            w: match shape {
+                Shape::IsoEnter => 1.25,
+                Shape::Rectangle => 1.0
+            },
+            h: match shape {
+                Shape::IsoEnter => 2.0,
+                Shape::Rectangle => 1.0
+            },
+            r: 0.0,
+            actions: Vec::new(),
+            default_action: Trans
         }
     }
 
     /// 位置と幅を指定してインスタンスを生成
-    fn new_with_width(x: f32, y: f32, w: f32) -> Self {
+    pub fn new_with_width(x: f32, y: f32, w: f32) -> Self {
         Self {
             shape: Rectangle,
             x,
@@ -60,12 +97,13 @@ impl Switch {
             w,
             h: 1.0,
             r: 0.0,
-            actions: Vec::new()
+            actions: Vec::new(),
+            default_action: Trans
         }
     }
 
     /// 位置と大きさを指定してインスタンスを生成
-    fn new_with_size(x: f32, y: f32, w: f32, h: f32) -> Self {
+    pub fn new_with_size(x: f32, y: f32, w: f32, h: f32) -> Self {
         Self {
             shape: Rectangle,
             x,
@@ -73,25 +111,13 @@ impl Switch {
             w,
             h,
             r: 0.0,
-            actions: Vec::new()
+            actions: Vec::new(),
+            default_action: Trans
         }
     }
 
-    /// 形状を変更
-    fn shape(&mut self, shape: Shape) -> &mut Self {
-        self.shape = shape;
-        self
-    }
-
-    /// 位置を移動
-    fn move_to(&mut self, x: f32, y: f32) -> &mut Self {
-        self.x = x;
-        self.y = y;
-        self
-    }
-
     /// その場で回転
-    fn rotate(&mut self, r: f32) -> &mut Self {
+    pub fn rotate(&mut self, r: f32) -> &mut Self {
         self.r = r;
         self
     }
@@ -99,8 +125,13 @@ impl Switch {
     /// アクションを追加
     ///
     /// 4レイヤーまで追加出来るがそれを超えると無視される
-    fn action(&mut self, a: Action) -> &mut Self {
-        self.actions.push(a);
+    pub fn action(&mut self, a: Action) -> &mut Self {
+        let _ = self.actions.push(a);
+        self
+    }
+
+    pub fn default_action(&mut self, a: Action) -> &mut Self {
+        self.default_action = a;
         self
     }
 }

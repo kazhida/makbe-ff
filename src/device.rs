@@ -11,6 +11,7 @@ use crate::switch::Switch;
 ///
 /// キースイッチだけでなく、ロータリーエンコーダーも使えるようにしたいので、Stateというenumでラップした。
 /// V8とかV16とか抽象化が全然できてなくてダサいけど、Stateでくくることが主目的
+#[derive(Debug, Clone)]
 pub enum State<'a> {
     /// 普通のキースイッチ
     Pins(&'a[bool]),
@@ -36,5 +37,8 @@ pub trait Device<'a, I2cError> {
     fn read_device(&mut self, i2cm: &RefCell<dyn I2C<I2cError>>) -> Result<State, I2cError>;
 
     /// # キーの割付
-    fn assign(&mut self, pin: usize, switch: Switch) -> Result<Switch, Switch>;
+    fn assign(&mut self, pin: usize, switch: Switch) -> Result<&Switch, Switch>;
+
+    // fn events(pins: State::Pins()) -> impl Iterator<Event>
 }
+

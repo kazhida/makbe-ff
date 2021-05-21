@@ -8,3 +8,6 @@ mod device;
 mod devices;
 mod switch;
 mod i2c;
+mod event;
+mod debouncer;
+mod evaluator;
