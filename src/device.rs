@@ -4,41 +4,42 @@
 
 
 use crate::i2c::I2C;
-use core::cell::RefCell;
 use crate::switch::Switch;
+use crate::event::EventBuffer;
 
 /// デバイスが返す状態
 ///
 /// キースイッチだけでなく、ロータリーエンコーダーも使えるようにしたいので、Stateというenumでラップした。
-/// V8とかV16とか抽象化が全然できてなくてダサいけど、Stateでくくることが主目的
+/// Value8とかValue16とか抽象化が全然できてなくてダサいけど、Stateでくくることが主目的
 #[derive(Debug, Clone)]
-pub enum State<'a> {
-    /// 普通のキースイッチ
-    Pins(&'a[bool]),
+pub enum State {
+    /// 普通のキースイッチ（16bit）
+    Pins16([bool; 16]),
+    /// 普通のキースイッチ（16bit）
+    Pins8([bool; 8]),
     /// ロータリーエンコーダ(0-0xFF)
-    V8(&'a[u8]),
+    Value8(u8),
     /// ロータリーエンコーダ(0-0xFFFF)
-    V16(&'a[u16]),
+    Value16(u16),
     /// ロータリーエンコーダ(0-0xFFFFFFFF)
-    V32(&'a[u32])
+    Value32(u32)
 }
 
 /// デバイスの機能
-pub trait Device<'a, I2cError> {
-
+pub trait Device<I2cError>
+{
     /// # デバイスの初期化
     ///
     /// I/Oエクスパンダ上のピンの設定とか
-    fn init_device(&self, i2cm: &RefCell<dyn I2C<I2cError>>) -> Result<(), I2cError>;
+    fn init_device(&self, i2c: &mut dyn I2C<I2cError>) -> Result<(), I2cError>;
 
     /// # 読込
     ///
     /// 返値はそのデバイスの状態
-    fn read_device(&mut self, i2cm: &RefCell<dyn I2C<I2cError>>) -> Result<State, I2cError>;
+    fn read_device(&self, i2c: &mut dyn I2C<I2cError>) -> Result<State, I2cError>;
 
     /// # キーの割付
-    fn assign(&mut self, pin: usize, switch: Switch) -> Result<&Switch, Switch>;
+    fn assign(&mut self, pin: usize, switch: &'static Switch) -> Result<&Switch, &Switch>;
 
-    // fn events(pins: State::Pins()) -> impl Iterator<Event>
+    fn add_event(&self, pins: &[bool], events: &mut EventBuffer);
 }
-

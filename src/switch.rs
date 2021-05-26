@@ -26,7 +26,7 @@ pub enum Shape {
 /// Keyboard Layout Editor のraw-dataは、右に進み、改行時に左端に戻るという規則に
 /// タートル・グラフィックスの要素を加えたものなので、ここでの仕様とかなり違うけど、
 /// 変換処理実装時に頑張る
-#[derive(Debug, Clone)]
+#[derive(Debug)]
 pub struct Switch {
     shape: Shape,
     x: f32,
@@ -125,7 +125,7 @@ impl Switch {
     /// アクションを追加
     ///
     /// 4レイヤーまで追加出来るがそれを超えると無視される
-    pub fn action(&mut self, a: Action) -> &mut Self {
+    pub fn append_action(&mut self, a: Action) -> &mut Self {
         let _ = self.actions.push(a);
         self
     }
@@ -135,3 +135,8 @@ impl Switch {
         self
     }
 }
+
+impl Default for Switch {
+    fn default() -> Self { Switch::dummy() }
+}
+

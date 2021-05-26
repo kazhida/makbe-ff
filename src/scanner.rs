@@ -4,34 +4,39 @@
 
 use crate::device::Device;
 use crate::i2c::I2C;
-use crate::device::State::Pins;
-use generic_array::{GenericArray, ArrayLength};
-use core::cell::RefCell;
+use heapless::{Vec, ArrayLength};
+use crate::event::EventBuffer;
+use core::ops::DerefMut;
+use crate::device::State::{Pins16, Pins8};
 
 /// deviceを使用して、キーの状態をスキャンするもの
-pub struct Scanner<'a, I2cError, NumDevices>
+pub struct Scanner<I2cError: 'static, NumDevices>
     where
-        NumDevices: ArrayLength<&'a mut dyn Device<'a, I2cError>>
+        NumDevices: ArrayLength<&'static mut dyn Device<I2cError>>
 {
-    i2c: &'a RefCell<dyn I2C<I2cError>>,
-    devices: GenericArray<&'a mut dyn Device<'a, I2cError>, NumDevices>
+    i2c: &'static mut dyn I2C<I2cError>,
+    devices: Vec<&'static mut dyn Device<I2cError>, NumDevices>
 }
 
-impl<'a, I2cError, NumDevices> Scanner<'a, I2cError, NumDevices>
+impl<I2cError, NumDevices> Scanner<I2cError, NumDevices>
     where
-        NumDevices: ArrayLength<&'a mut dyn Device<'a, I2cError>>
+        NumDevices: ArrayLength<&'static mut dyn Device<I2cError>>
 {
 
-    pub fn scan(&mut self) {
-        for d in self.devices.as_mut_slice() {
-            let result = d.read_device(&self.i2c);
+    pub fn scan(&'static mut self) {
+        // キー・イベントの収拾
+        let mut event_buffer = EventBuffer::new();
+        for d in self.devices.iter_mut() {
+            let device = d.deref_mut();
+            let result = device.read_device(self.i2c);
             match result {
                 Ok(state) => {
                     match state {
-                        Pins(pins) => {
-                            for (j, p) in pins.iter().enumerate() {
-                                // pressed_keys[i][j] = p;
-                            }
+                        Pins16(pins) => {
+                            device.add_event(&pins, &mut event_buffer)
+                        }
+                        Pins8(pins) => {
+                            device.add_event(&pins, &mut event_buffer)
                         }
                         _ => {
                             // ロータリーエンコーダのこととかはまだ考えない
@@ -43,5 +48,10 @@ impl<'a, I2cError, NumDevices> Scanner<'a, I2cError, NumDevices>
                 }
             }
         }
+        // キー・イベントの処理
+
+
+
+
     }
 }

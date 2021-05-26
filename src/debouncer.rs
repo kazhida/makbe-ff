@@ -3,23 +3,33 @@
 //
 
 
-use generic_array::{GenericArray, ArrayLength};
-use crate::event::Event;
+use crate::event::{Event, EventBuffer};
 use crate::switch::Switch;
 use crate::event::Event::{Pressed, Released};
-use either::Either::{Left, Right};
+use heapless::{Vec, ArrayLength};
 
 #[derive(Default, PartialEq, Eq)]
 pub struct Keys<NumPins>
     where
         NumPins: ArrayLength<bool> + core::cmp::PartialEq
 {
-    pub pressed: GenericArray<bool, NumPins>
+    pub pressed: Vec<bool, NumPins>
+}
+
+impl<NumPins> Keys<NumPins>
+    where
+        NumPins: ArrayLength<bool> + core::cmp::PartialEq
+{
+    pub fn from(keys: &[bool]) -> Self {
+        Self {
+            pressed: Vec::from_slice(keys).unwrap()
+        }
+    }
 }
 
 pub struct Debouncer<NumPins>
     where
-        NumPins: ArrayLength<bool> + core::cmp::PartialEq
+        NumPins: ArrayLength<bool> + ArrayLength<Event> + core::cmp::PartialEq
 {
     cur: Keys<NumPins>,
     new: Keys<NumPins>,
@@ -29,9 +39,8 @@ pub struct Debouncer<NumPins>
 
 impl <NumPins> Debouncer<NumPins>
     where
-        NumPins: ArrayLength<bool> + core::cmp::PartialEq
+        NumPins: ArrayLength<bool> + ArrayLength<Event> + core::cmp::PartialEq
 {
-
     pub fn new(limit: u16) -> Self {
         Self {
             cur: Keys::default(),
@@ -41,15 +50,15 @@ impl <NumPins> Debouncer<NumPins>
         }
     }
 
-    pub fn update(&mut self, new: Keys<NumPins>) ->bool {
-        if self.cur == new {
+    pub fn update(&mut self, new: &Keys<NumPins>) ->bool {
+        if self.cur == *new {
             self.count = 0;
             false
         } else {
-            if self.new == new {
+            if self.new == *new {
                 self.count += 1;
             } else {
-                self.new = new;
+                self.new.pressed = new.pressed.clone();
                 self.count = 1;
             }
             if self.count <= self.limit {
@@ -62,11 +71,11 @@ impl <NumPins> Debouncer<NumPins>
         }
     }
 
-    pub fn events<F: 'static>(&mut self, new: Keys<NumPins>, switch: F) -> impl Iterator<Item = Option<Event>> + '_
+    pub fn add_events<F>(&mut self, new: &[bool], events: &mut EventBuffer, switch: F)
         where
-            F: Fn(usize)->Switch,
+            F: Fn(usize)->&'static Switch
     {
-        if self.update(new) {
+        if self.update(&Keys::from(new)) {
             let zipped = self.new.pressed.iter().zip(self.cur.pressed.iter());
             let mapped = zipped.enumerate().map(
                 move | (i, (o, n)) | {
@@ -77,10 +86,12 @@ impl <NumPins> Debouncer<NumPins>
                     }
                 }
             );
-            Left(mapped)
-        } else {
-            Right(core::iter::empty())
-        }
+            let filtered = mapped.filter(|o| o.is_some());
+            let unwrapped = filtered.map(|f| f.unwrap());
+            for (i, e) in unwrapped.enumerate() {
+                events.buffer.push(e.clone());
+            }
+        };
     }
 }
 

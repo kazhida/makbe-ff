@@ -4,10 +4,24 @@
 
 
 use crate::switch::Switch;
+use heapless::Vec;
+use heapless::consts::U64;
 
-#[derive(Debug, Clone)]
+#[derive(Debug, Clone, Copy)]
 pub enum Event {
-    Pressed(Switch),
-    Released(Switch)
+    Pressed(&'static Switch),
+    Released(&'static Switch)
+}
+
+pub struct EventBuffer {
+    pub buffer: Vec<Event, U64>
+}
+
+impl EventBuffer {
+    pub fn new() -> Self {
+        Self {
+            buffer: Vec::new()
+        }
+    }
 }
 
