@@ -17,6 +17,32 @@ pub enum Shape {
     IsoEnter
 }
 
+#[derive(Debug, Clone, Copy, Eq, PartialEq)]
+pub struct Position {
+    pub x: i32,
+    pub y: i32,
+    pub w: i32,
+    pub h: i32,
+    pub r: i32
+}
+
+impl Position {
+
+    pub fn internal_value(v: f32) -> i32 {
+        (v * 256.0) as i32
+    }
+
+    pub fn new(x: f32, y: f32, w: f32, h: f32, r: f32) -> Self {
+        Self {
+            x: Self::internal_value(x),
+            y: Self::internal_value(y),
+            w: Self::internal_value(w),
+            h: Self::internal_value(h),
+            r: Self::internal_value(r)
+        }
+    }
+}
+
 /// # キースイッチ
 ///
 /// x, yは左上を頂点とする絶対座標（キーの中心位置を示す）。
@@ -26,14 +52,10 @@ pub enum Shape {
 /// Keyboard Layout Editor のraw-dataは、右に進み、改行時に左端に戻るという規則に
 /// タートル・グラフィックスの要素を加えたものなので、ここでの仕様とかなり違うけど、
 /// 変換処理実装時に頑張る
-#[derive(Debug)]
+#[derive(Debug, Eq, PartialEq)]
 pub struct Switch {
-    shape: Shape,
-    x: f32,
-    y: f32,
-    w: f32,
-    h: f32,
-    r: f32,
+    pub shape: Shape,
+    pub position: Position,
     actions: Vec<Action, U4>,
     default_action: Action
 }
@@ -44,11 +66,13 @@ impl Switch {
     pub fn dummy() -> Self {
         Self {
             shape: Rectangle,
-            x: 0.0,
-            y: 0.0,
-            w: 0.0,
-            h: 0.0,
-            r: 0.0,
+            position: Position::new(
+                0.0,
+                0.0,
+                0.0,
+                0.0,
+                0.0
+            ),
             actions: Vec::new(),
             default_action: NoOp
         }
@@ -58,11 +82,13 @@ impl Switch {
     pub fn new(x: f32, y: f32) -> Self {
         Self {
             shape: Rectangle,
-            x,
-            y,
-            w: 1.0,
-            h: 1.0,
-            r: 0.0,
+            position: Position::new(
+                x,
+                y,
+                1.0,
+                1.0,
+                0.0
+            ),
             actions: Vec::new(),
             default_action: Trans
         }
@@ -72,17 +98,19 @@ impl Switch {
     pub fn new_with_shape(shape: Shape, x: f32, y: f32) -> Self {
         Self {
             shape,
-            x,
-            y,
-            w: match shape {
-                Shape::IsoEnter => 1.25,
-                Shape::Rectangle => 1.0
-            },
-            h: match shape {
-                Shape::IsoEnter => 2.0,
-                Shape::Rectangle => 1.0
-            },
-            r: 0.0,
+            position: Position::new(
+                x,
+                y,
+                match shape {
+                    Shape::IsoEnter => 1.25,
+                    Shape::Rectangle => 1.0
+                },
+                match shape {
+                    Shape::IsoEnter => 2.0,
+                    Shape::Rectangle => 1.0
+                },
+                0.0
+            ),
             actions: Vec::new(),
             default_action: Trans
         }
@@ -92,11 +120,13 @@ impl Switch {
     pub fn new_with_width(x: f32, y: f32, w: f32) -> Self {
         Self {
             shape: Rectangle,
-            x,
-            y,
-            w,
-            h: 1.0,
-            r: 0.0,
+            position: Position::new(
+                x,
+                y,
+                w,
+                1.0,
+                0.0
+            ),
             actions: Vec::new(),
             default_action: Trans
         }
@@ -106,11 +136,13 @@ impl Switch {
     pub fn new_with_size(x: f32, y: f32, w: f32, h: f32) -> Self {
         Self {
             shape: Rectangle,
-            x,
-            y,
-            w,
-            h,
-            r: 0.0,
+            position: Position::new(
+                x,
+                y,
+                w,
+                h,
+                0.0
+            ),
             actions: Vec::new(),
             default_action: Trans
         }
@@ -118,7 +150,7 @@ impl Switch {
 
     /// その場で回転
     pub fn rotate(&mut self, r: f32) -> &mut Self {
-        self.r = r;
+        self.position.r = Position::internal_value(r);
         self
     }
 
@@ -134,9 +166,16 @@ impl Switch {
         self.default_action = a;
         self
     }
+
+    pub fn action_at(&self, layer: usize) -> Option<&Action> {
+        if layer < self.actions.len() {
+            Some(&self.actions[layer])
+        } else {
+            None
+        }
+    }
 }
 
 impl Default for Switch {
     fn default() -> Self { Switch::dummy() }
 }
-

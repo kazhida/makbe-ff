@@ -2,12 +2,14 @@
 // All right reserved.
 //
 
+use heapless::{Vec, ArrayLength};
+use core::ops::DerefMut;
 use crate::device::Device;
 use crate::i2c::I2C;
-use heapless::{Vec, ArrayLength};
 use crate::event::EventBuffer;
-use core::ops::DerefMut;
-use crate::device::State::{Pins16, Pins8};
+use crate::device::DeviceState::{Pins16, Pins8};
+use crate::evaluator::Evaluator;
+use crate::reporter::Reporter;
 
 /// deviceを使用して、キーの状態をスキャンするもの
 pub struct Scanner<I2cError: 'static, NumDevices>
@@ -15,15 +17,15 @@ pub struct Scanner<I2cError: 'static, NumDevices>
         NumDevices: ArrayLength<&'static mut dyn Device<I2cError>>
 {
     i2c: &'static mut dyn I2C<I2cError>,
-    devices: Vec<&'static mut dyn Device<I2cError>, NumDevices>
+    devices: Vec<&'static mut dyn Device<I2cError>, NumDevices>,
+    evaluator: Evaluator<'static>
 }
 
 impl<I2cError, NumDevices> Scanner<I2cError, NumDevices>
     where
         NumDevices: ArrayLength<&'static mut dyn Device<I2cError>>
 {
-
-    pub fn scan(&'static mut self) {
+    pub fn scan(&'static mut self, reporter: &mut dyn Reporter) {
         // キー・イベントの収拾
         let mut event_buffer = EventBuffer::new();
         for d in self.devices.iter_mut() {
@@ -49,9 +51,9 @@ impl<I2cError, NumDevices> Scanner<I2cError, NumDevices>
             }
         }
         // キー・イベントの処理
-
-
-
-
+        for e in event_buffer.buffer.iter() {
+            reporter.send_report(self.evaluator.eval(*e));
+        }
+        reporter.send_report(self.evaluator.tick());
     }
 }

@@ -5,12 +5,12 @@
 use crate::i2c::I2C;
 use crate::switch::Switch;
 use crate::debouncer::{Debouncer};
-use crate::device::{Device, State};
+use crate::device::{Device, DeviceState};
 use crate::event::EventBuffer;
 use heapless::Vec;
 use heapless::consts::U16;
 use core::cell::RefCell;
-use crate::device::State::Pins16;
+use crate::device::DeviceState::Pins16;
 
 /// TCA9555
 /// PCA9555も同じ
@@ -40,7 +40,7 @@ impl<I2cError> Device<I2cError> for TCA9555 {
         i2c.write(self.dev_addr, &[0x07_u8, 0xFF_u8])
     }
 
-    fn read_device(&self, i2c: &mut dyn I2C<I2cError>) -> Result<State, I2cError> {
+    fn read_device(&self, i2c: &mut dyn I2C<I2cError>) -> Result<DeviceState, I2cError> {
         let reg_addr = &[0x00_u8];
         let data = &mut [0x00_u8, 0x00_u8];
         i2c.write_read(self.dev_addr, reg_addr, data)?;

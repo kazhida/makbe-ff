@@ -12,7 +12,7 @@ use crate::event::EventBuffer;
 /// キースイッチだけでなく、ロータリーエンコーダーも使えるようにしたいので、Stateというenumでラップした。
 /// Value8とかValue16とか抽象化が全然できてなくてダサいけど、Stateでくくることが主目的
 #[derive(Debug, Clone)]
-pub enum State {
+pub enum DeviceState {
     /// 普通のキースイッチ（16bit）
     Pins16([bool; 16]),
     /// 普通のキースイッチ（16bit）
@@ -36,7 +36,7 @@ pub trait Device<I2cError>
     /// # 読込
     ///
     /// 返値はそのデバイスの状態
-    fn read_device(&self, i2c: &mut dyn I2C<I2cError>) -> Result<State, I2cError>;
+    fn read_device(&self, i2c: &mut dyn I2C<I2cError>) -> Result<DeviceState, I2cError>;
 
     /// # キーの割付
     fn assign(&mut self, pin: usize, switch: &'static Switch) -> Result<&Switch, &Switch>;
