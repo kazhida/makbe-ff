@@ -25,7 +25,7 @@ impl<I2cError, NumDevices> Scanner<I2cError, NumDevices>
     where
         NumDevices: ArrayLength<&'static mut dyn Device<I2cError>>
 {
-    pub fn scan(&'static mut self, reporter: &mut dyn Reporter) {
+    pub fn scan(&'static mut self, reporter: &mut dyn Reporter) -> EventBuffer {
         // キー・イベントの収拾
         let mut event_buffer = EventBuffer::new();
         for d in self.devices.iter_mut() {
@@ -50,10 +50,6 @@ impl<I2cError, NumDevices> Scanner<I2cError, NumDevices>
                 }
             }
         }
-        // キー・イベントの処理
-        for e in event_buffer.buffer.iter() {
-            reporter.send_report(self.evaluator.eval(*e));
-        }
-        reporter.send_report(self.evaluator.tick());
+        EventBuffer
     }
 }
