@@ -11,4 +11,3 @@ mod i2c;
 mod event;
 mod debouncer;
 mod evaluator;
-mod reporter;

@@ -9,7 +9,6 @@ use crate::i2c::I2C;
 use crate::event::EventBuffer;
 use crate::device::DeviceState::{Pins16, Pins8};
 use crate::evaluator::Evaluator;
-use crate::reporter::Reporter;
 
 /// deviceを使用して、キーの状態をスキャンするもの
 pub struct Scanner<I2cError: 'static, NumDevices>
@@ -25,7 +24,7 @@ impl<I2cError, NumDevices> Scanner<I2cError, NumDevices>
     where
         NumDevices: ArrayLength<&'static mut dyn Device<I2cError>>
 {
-    pub fn scan(&'static mut self, reporter: &mut dyn Reporter) -> EventBuffer {
+    pub fn scan(&'static mut self) -> EventBuffer {
         // キー・イベントの収拾
         let mut event_buffer = EventBuffer::new();
         for d in self.devices.iter_mut() {
@@ -50,6 +49,6 @@ impl<I2cError, NumDevices> Scanner<I2cError, NumDevices>
                 }
             }
         }
-        EventBuffer
+        event_buffer
     }
 }
