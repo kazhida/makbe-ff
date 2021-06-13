@@ -3,11 +3,11 @@
 //
 
 #![no_std]
-mod scanner;
-mod device;
-mod devices;
-mod switch;
-mod i2c;
-mod event;
-mod debouncer;
-mod evaluator;
+pub mod scanner;
+pub mod device;
+pub mod devices;
+pub mod switch;
+pub mod i2c;
+pub mod event;
+pub mod debouncer;
+pub mod evaluator;

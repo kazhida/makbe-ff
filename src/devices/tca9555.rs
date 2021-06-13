@@ -14,25 +14,29 @@ use crate::device::DeviceState::Pins16;
 
 /// TCA9555
 /// PCA9555も同じ
-pub struct TCA9555 {
+pub struct TCA9555<'a> {
     dev_addr: u8,
-    debouncer: RefCell<Debouncer<U16>>,
-    switches: Vec<&'static Switch, U16>
+    debouncer: RefCell<Debouncer<'a, U16>>,
+    switches: Vec<Switch, U16>
 }
 
-impl TCA9555 {
+impl TCA9555<'_> {
 
-    fn new(addr: u8, debounce: u16) -> Self {
+    pub fn new(addr: u8, debounce: u16) -> Self {
         Self {
             dev_addr: 0x20u8 + addr,
             debouncer: RefCell::new(Debouncer::new(debounce)),
             switches: Vec::default()
         }
     }
+
+    fn ref_switch(&self, i: usize) -> &'_ Switch {
+        &self.switches[i]
+    }
 }
 
 /// I2Cの実装がMCU（チップセット）毎にバラバラなので、エラーの型をジェネリクスのパラメータで渡す形になってしまう
-impl<I2cError> Device<I2cError> for TCA9555 {
+impl<I2cError> Device<I2cError> for TCA9555<'_>{
 
     fn init_device(&self, i2c: &mut dyn I2C<I2cError>) -> Result<(), I2cError> {
         // All input
@@ -57,16 +61,16 @@ impl<I2cError> Device<I2cError> for TCA9555 {
         Ok(Pins16(pressed))
     }
 
-    fn assign(&mut self, pin: usize, switch: &'static Switch) -> Result<&Switch, &Switch> {
+    fn assign(&mut self, pin: usize, switch: Switch) -> Result<&Switch, &Switch> {
         if pin < 16 {
             self.switches[pin] = switch;
-            Ok(switch)
+            Ok(&switch)
         } else {
-            Err(switch)
+            Err(&switch)
         }
     }
 
-    fn add_event(&self, pins: &[bool], events: &mut EventBuffer) {
-        self.debouncer.borrow_mut().add_events(pins, events, |i| &self.switches[i])
+    fn add_event(&self, pins: &[bool], events: &mut EventBuffer<'_>) {
+        self.debouncer.borrow_mut().add_events(pins, events, |i| self.ref_switch(i))
     }
 }

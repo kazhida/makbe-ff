@@ -19,10 +19,19 @@ pub struct Evaluator<'a> {
     default_layer: usize,
     states: Vec<KeyState<'a>, U64>,
     waiting: Option<WaitingState>,
-    stacked: ArrayDeque<[Stacked; 16], arraydeque::behavior::Wrapping>
+    stacked: ArrayDeque<[Stacked<'a>; 16], arraydeque::behavior::Wrapping>
 }
 
 impl <'a> Evaluator<'a> {
+
+    pub fn new() -> Self {
+        Self {
+            default_layer: 0,
+            states: Vec::new(),
+            waiting: None,
+            stacked: ArrayDeque::new()
+        }
+    }
 
     pub fn eval(&'a mut self, event: Event) -> impl Iterator<Item=KeyCode> + 'a {
         if let Some(stacked) = self.stacked.push_back(event.into()) {
@@ -231,18 +240,18 @@ impl WaitingState {
 }
 
 #[derive(Debug)]
-struct Stacked {
-    event: Event,
+struct Stacked<'a> {
+    event: Event<'a>,
     since: u16,
 }
 
-impl From<Event> for Stacked {
+impl From<Event<'_>> for Stacked<'_> {
     fn from(event: Event) -> Self {
         Stacked { event, since: 0 }
     }
 }
 
-impl Stacked {
+impl Stacked<'_> {
     fn tick(&mut self) {
         self.since = self.since.saturating_add(1);
     }

@@ -66,13 +66,7 @@ impl Switch {
     pub fn dummy() -> Self {
         Self {
             shape: Rectangle,
-            position: Position::new(
-                0.0,
-                0.0,
-                0.0,
-                0.0,
-                0.0
-            ),
+            position: Position::new(0.0, 0.0, 0.0, 0.0, 0.0),
             actions: Vec::new(),
             default_action: NoOp
         }
@@ -82,13 +76,7 @@ impl Switch {
     pub fn new(x: f32, y: f32) -> Self {
         Self {
             shape: Rectangle,
-            position: Position::new(
-                x,
-                y,
-                1.0,
-                1.0,
-                0.0
-            ),
+            position: Position::new(x, y, 1.0, 1.0, 0.0),
             actions: Vec::new(),
             default_action: Trans
         }
@@ -120,13 +108,7 @@ impl Switch {
     pub fn new_with_width(x: f32, y: f32, w: f32) -> Self {
         Self {
             shape: Rectangle,
-            position: Position::new(
-                x,
-                y,
-                w,
-                1.0,
-                0.0
-            ),
+            position: Position::new(x, y, w, 1.0, 0.0),
             actions: Vec::new(),
             default_action: Trans
         }
@@ -136,12 +118,7 @@ impl Switch {
     pub fn new_with_size(x: f32, y: f32, w: f32, h: f32) -> Self {
         Self {
             shape: Rectangle,
-            position: Position::new(
-                x,
-                y,
-                w,
-                h,
-                0.0
+            position: Position::new(x, y, w, h, 0.0
             ),
             actions: Vec::new(),
             default_action: Trans
@@ -155,8 +132,6 @@ impl Switch {
     }
 
     /// アクションを追加
-    ///
-    /// 4レイヤーまで追加出来るがそれを超えると無視される
     pub fn append_action(&mut self, a: Action) -> &mut Self {
         let _ = self.actions.push(a);
         self
@@ -178,4 +153,36 @@ impl Switch {
 
 impl Default for Switch {
     fn default() -> Self { Switch::dummy() }
+}
+
+#[macro_export]
+macro_rules! switch_pool {
+    ($(#[$top_attr:meta])* struct $Type:ident,
+    $( $(#[$attr:meta])* sw $name:ident = $switch_expr:expr),
+    + , ) => {
+
+        paste::item! {
+            $(#[$top_attr])*
+            pub struct $Type {
+                $(
+                    $(#[$attr])*
+                    pub $name: Switch
+                ),+
+            }
+        }
+
+        impl $Type {
+            /// Returns the pins for the device
+            paste::item! {
+                pub fn new() -> Self {
+                    $Type {
+                        $(
+                        $(#[$attr])*
+                        $name: $switch_expr
+                        ),+
+                    }
+                }
+            }
+        }
+    }
 }

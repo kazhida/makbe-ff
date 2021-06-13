@@ -2,5 +2,5 @@
 // All right reserved.
 //
 
-mod tca9555;
-mod tca9554;
+pub mod tca9555;
+pub mod tca9554;

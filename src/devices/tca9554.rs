@@ -14,13 +14,13 @@ use crate::device::DeviceState::Pins8;
 
 /// TCA9554
 /// PCA9554も同じ
-pub struct TCA9554 {
+pub struct TCA9554<'a> {
     dev_addr: u8,
-    debouncer: RefCell<Debouncer<U8>>,
-    switches: Vec<&'static Switch, U8>
+    debouncer: RefCell<Debouncer<'a, U8>>,
+    switches: Vec<Switch, U8>
 }
 
-impl TCA9554 {
+impl TCA9554<'_> {
 
     pub fn new(addr: u8, debounce: u16) -> Self {
         Self {
@@ -32,7 +32,7 @@ impl TCA9554 {
 }
 
 /// I2Cの実装がMCU（チップセット）毎にバラバラなので、エラーの型をジェネリクスのパラメータで渡す形になってしまう
-impl<I2cError> Device<I2cError> for TCA9554 {
+impl<I2cError> Device<I2cError> for TCA9554<'_> {
 
     fn init_device(&self, i2c: &mut dyn I2C<I2cError>) -> Result<(), I2cError> {
         // All input
@@ -54,12 +54,12 @@ impl<I2cError> Device<I2cError> for TCA9554 {
         Ok(Pins8(pressed))
     }
 
-    fn assign(&mut self, pin: usize, switch: &'static Switch) -> Result<&Switch, &Switch> {
+    fn assign(&mut self, pin: usize, switch: Switch) -> Result<&Switch, &Switch> {
         if pin < 8 {
             self.switches[pin] = switch;
-            Ok(switch)
+            Ok(&switch)
         } else {
-            Err(switch)
+            Err(&switch)
         }
     }
 

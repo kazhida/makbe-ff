@@ -8,16 +8,16 @@ use heapless::Vec;
 use heapless::consts::U64;
 
 #[derive(Debug, Clone, Copy)]
-pub enum Event {
-    Pressed(&'static Switch),
-    Released(&'static Switch)
+pub enum Event<'a> {
+    Pressed(&'a Switch),
+    Released(&'a Switch)
 }
 
-pub struct EventBuffer {
-    pub buffer: Vec<Event, U64>
+pub struct EventBuffer<'a> {
+    pub buffer: Vec<Event<'a>, U64>
 }
 
-impl EventBuffer {
+impl EventBuffer<'_> {
     pub fn new() -> Self {
         Self {
             buffer: Vec::new()

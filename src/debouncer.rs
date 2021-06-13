@@ -7,6 +7,7 @@ use crate::event::{Event, EventBuffer};
 use crate::switch::Switch;
 use crate::event::Event::{Pressed, Released};
 use heapless::{Vec, ArrayLength};
+use core::marker::PhantomData;
 
 #[derive(Default, PartialEq, Eq)]
 pub struct Keys<NumPins>
@@ -27,26 +28,28 @@ impl<NumPins> Keys<NumPins>
     }
 }
 
-pub struct Debouncer<NumPins>
+pub struct Debouncer<'a, NumPins>
     where
-        NumPins: ArrayLength<bool> + ArrayLength<Event> + core::cmp::PartialEq
+        NumPins: ArrayLength<bool> + ArrayLength<Event<'a>> + core::cmp::PartialEq
 {
     cur: Keys<NumPins>,
     new: Keys<NumPins>,
     count: u16,
-    limit: u16
+    limit: u16,
+    phantom: &'a PhantomData<*const ()>
 }
 
-impl <NumPins> Debouncer<NumPins>
+impl <'a, NumPins> Debouncer<'a, NumPins>
     where
-        NumPins: ArrayLength<bool> + ArrayLength<Event> + core::cmp::PartialEq
+        NumPins: ArrayLength<bool> + ArrayLength<Event<'a>> + core::cmp::PartialEq
 {
     pub fn new(limit: u16) -> Self {
         Self {
             cur: Keys::default(),
             new: Keys::default(),
             count: 0,
-            limit
+            limit,
+            phantom: &PhantomData::default()
         }
     }
 
@@ -73,7 +76,7 @@ impl <NumPins> Debouncer<NumPins>
 
     pub fn add_events<F>(&mut self, new: &[bool], events: &mut EventBuffer, switch: F)
         where
-            F: Fn(usize)->&'static Switch
+            F: Fn(usize)->&'a Switch
     {
         if self.update(&Keys::from(new)) {
             let zipped = self.new.pressed.iter().zip(self.cur.pressed.iter());
