@@ -6,8 +6,8 @@
 use keyberon::action::Action;
 use keyberon::action::Action::*;
 use keyberon::key_code::KeyCode;
-use crate::event::Event;
-use crate::event::Event::{Released, Pressed};
+use crate::event::KeyEvent;
+use crate::event::KeyEvent::{Released, Pressed};
 use crate::switch::Switch;
 use heapless::Vec;
 use heapless::consts::U64;
@@ -19,7 +19,7 @@ pub struct Evaluator<'a> {
     default_layer: usize,
     states: Vec<KeyState<'a>, U64>,
     waiting: Option<WaitingState>,
-    stacked: ArrayDeque<[Stacked<'a>; 16], arraydeque::behavior::Wrapping>
+    stacked: ArrayDeque<[Stacked; 16], arraydeque::behavior::Wrapping>
 }
 
 impl <'a> Evaluator<'a> {
@@ -33,7 +33,7 @@ impl <'a> Evaluator<'a> {
         }
     }
 
-    pub fn eval(&'a mut self, event: Event) -> impl Iterator<Item=KeyCode> + 'a {
+    pub fn eval(&'a mut self, event: KeyEvent) -> impl Iterator<Item=KeyCode> + 'a {
         if let Some(stacked) = self.stacked.push_back(event.into()) {
             self.waiting_into_hold();
             self.unstack(stacked);
@@ -231,27 +231,27 @@ impl WaitingState {
         self.timeout == 0
     }
 
-    fn is_corresponding_release(&self, event: &Event) -> bool {
+    fn is_corresponding_release(&self, event: &KeyEvent) -> bool {
         match event {
-            Event::Released(switch) if *switch == self.switch => true,
+            KeyEvent::Released(switch) if *switch == self.switch => true,
             _ => false,
         }
     }
 }
 
 #[derive(Debug)]
-struct Stacked<'a> {
-    event: Event<'a>,
+struct Stacked {
+    event: KeyEvent,
     since: u16,
 }
 
-impl From<Event<'_>> for Stacked<'_> {
-    fn from(event: Event) -> Self {
+impl From<KeyEvent> for Stacked {
+    fn from(event: KeyEvent) -> Self {
         Stacked { event, since: 0 }
     }
 }
 
-impl Stacked<'_> {
+impl Stacked {
     fn tick(&mut self) {
         self.since = self.since.saturating_add(1);
     }

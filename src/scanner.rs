@@ -3,7 +3,7 @@
 //
 
 use heapless::{Vec, ArrayLength};
-use core::ops::DerefMut;
+use core::ops::Deref;
 use crate::device::Device;
 use crate::i2c::I2C;
 use crate::event::EventBuffer;
@@ -11,24 +11,24 @@ use crate::device::DeviceState::{Pins16, Pins8};
 use crate::evaluator::Evaluator;
 
 /// deviceを使用して、キーの状態をスキャンするもの
-pub struct Scanner<I2cError: 'static, NumDevices>
+pub struct Scanner<'a, I2cError: 'static, NumDevices>
     where
-        NumDevices: ArrayLength<&'static mut dyn Device<I2cError>>
+        NumDevices: ArrayLength<&'a dyn Device<I2cError>>
 {
     i2c: &'static mut dyn I2C<I2cError>,
-    devices: Vec<&'static mut dyn Device<I2cError>, NumDevices>,
+    devices: Vec<&'a dyn Device<I2cError>, NumDevices>,
     evaluator: Evaluator<'static>
 }
 
-impl<I2cError, NumDevices> Scanner<I2cError, NumDevices>
+impl <'a, I2cError, NumDevices> Scanner<'a, I2cError, NumDevices>
     where
-        NumDevices: ArrayLength<&'static mut dyn Device<I2cError>>
+        NumDevices: ArrayLength<&'a dyn Device<I2cError>>
 {
     pub fn scan(&'static mut self) -> EventBuffer {
         // キー・イベントの収拾
         let mut event_buffer = EventBuffer::new();
-        for d in self.devices.iter_mut() {
-            let device = d.deref_mut();
+        for d in self.devices.iter() {
+            let device = d.deref();
             let result = device.read_device(self.i2c);
             match result {
                 Ok(state) => {

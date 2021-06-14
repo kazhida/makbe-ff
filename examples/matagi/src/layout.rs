@@ -1,3 +1,7 @@
+// Copyright 2021 Kazuyuki HIDA <kazhida@abplus.com>
+// All right reserved.
+//
+
 extern crate xiao_m0 as hal;
 extern crate paste;
 
@@ -5,13 +9,12 @@ use makbe_ff::switch::Switch;
 use makbe_ff::switch_pool;
 use makbe_ff::device::Device;
 use makbe_ff::devices::tca9555::TCA9555;
-use keyberon::action::k;
 use keyberon::key_code::KeyCode::*;
 use heapless::Vec;
 use heapless::consts::U5;
 use xiao_m0::hal::common::sercom::I2CError;
-use makbe_ff::i2c::I2C;
-use makbe_ff::scanner::Scanner;
+use makbe_ff::devices::Devices;
+
 
 switch_pool!(
     struct SwitchPool,
@@ -89,24 +92,13 @@ switch_pool!(
     sw Right = Switch::new(17.0, 4.0),
 );
 
-static SWITCHES: SwitchPool = SwitchPool::new();
 
-static mut DEVICE0: TCA9555 = TCA9555::new(0x0, 200);
-static mut DEVICE1: TCA9555 = TCA9555::new(0x1, 200);
-static mut DEVICE2: TCA9555 = TCA9555::new(0x2, 200);
-static mut DEVICE3: TCA9555 = TCA9555::new(0x3, 200);
-static mut DEVICE4: TCA9555 = TCA9555::new(0x4, 200);
-
-pub fn devices() -> Vec<&'static mut dyn Device<I2CError>, U5> {
-
-    let mut result:  Vec<&'static mut dyn Device<I2CError>, U5> = Vec::new();
-    unsafe {
-        result.push(&mut DEVICE0);
-        result.push(&mut DEVICE1);
-        result.push(&mut DEVICE2);
-        result.push(&mut DEVICE3);
-        result.push(&mut DEVICE4);
-    }
-
-    result
-}
+// type DeviceArray = &'static[Devices];
+//
+// static DEVICES: DeviceArray = &[
+//     TCA9555(TCA9555::new(0x0, 200)),
+//     TCA9555(TCA9555::new(0x1, 200)),
+//     TCA9555(TCA9555::new(0x2, 200)),
+//     TCA9555(TCA9555::new(0x3, 200)),
+//     TCA9555(TCA9555::new(0x4, 200))
+// ];

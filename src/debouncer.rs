@@ -3,11 +3,9 @@
 //
 
 
-use crate::event::{Event, EventBuffer};
-use crate::switch::Switch;
-use crate::event::Event::{Pressed, Released};
+use crate::event::{KeyEvent, IndexEvents};
 use heapless::{Vec, ArrayLength};
-use core::marker::PhantomData;
+use crate::event::IndexEvent::{PressedAt, ReleasedAt};
 
 #[derive(Default, PartialEq, Eq)]
 pub struct Keys<NumPins>
@@ -28,28 +26,26 @@ impl<NumPins> Keys<NumPins>
     }
 }
 
-pub struct Debouncer<'a, NumPins>
+pub struct Debouncer<NumPins>
     where
-        NumPins: ArrayLength<bool> + ArrayLength<Event<'a>> + core::cmp::PartialEq
+        NumPins: ArrayLength<bool> + ArrayLength<KeyEvent> + core::cmp::PartialEq
 {
     cur: Keys<NumPins>,
     new: Keys<NumPins>,
     count: u16,
-    limit: u16,
-    phantom: &'a PhantomData<*const ()>
+    limit: u16
 }
 
-impl <'a, NumPins> Debouncer<'a, NumPins>
+impl <NumPins> Debouncer<NumPins>
     where
-        NumPins: ArrayLength<bool> + ArrayLength<Event<'a>> + core::cmp::PartialEq
+        NumPins: ArrayLength<bool> + ArrayLength<KeyEvent> + core::cmp::PartialEq
 {
     pub fn new(limit: u16) -> Self {
         Self {
             cur: Keys::default(),
             new: Keys::default(),
             count: 0,
-            limit,
-            phantom: &PhantomData::default()
+            limit
         }
     }
 
@@ -74,27 +70,26 @@ impl <'a, NumPins> Debouncer<'a, NumPins>
         }
     }
 
-    pub fn add_events<F>(&mut self, new: &[bool], events: &mut EventBuffer, switch: F)
-        where
-            F: Fn(usize)->&'a Switch
-    {
+    pub fn events(&mut self, new: &[bool]) -> IndexEvents {
+        let mut result = IndexEvents::new();
         if self.update(&Keys::from(new)) {
             let zipped = self.new.pressed.iter().zip(self.cur.pressed.iter());
             let mapped = zipped.enumerate().map(
                 move | (i, (o, n)) | {
                     match (o, n) {
-                        (false, true) => Some(Pressed(switch(i))),
-                        (true, false) => Some(Released(switch(i))),
+                        (false, true) => Some(PressedAt(i)),
+                        (true, false) => Some(ReleasedAt(i)),
                         _ => None
                     }
                 }
             );
             let filtered = mapped.filter(|o| o.is_some());
             let unwrapped = filtered.map(|f| f.unwrap());
-            for (i, e) in unwrapped.enumerate() {
-                events.buffer.push(e.clone());
+            for e in unwrapped {
+                let _ = result.buffer.push(e);
             }
-        };
+        }
+        result
     }
 }
 

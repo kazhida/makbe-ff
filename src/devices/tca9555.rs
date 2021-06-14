@@ -11,16 +11,18 @@ use heapless::Vec;
 use heapless::consts::U16;
 use core::cell::RefCell;
 use crate::device::DeviceState::Pins16;
+use crate::event::IndexEvent::{PressedAt, ReleasedAt};
+use crate::event::KeyEvent::{Pressed, Released};
 
 /// TCA9555
 /// PCA9555も同じ
-pub struct TCA9555<'a> {
+pub struct TCA9555 {
     dev_addr: u8,
-    debouncer: RefCell<Debouncer<'a, U16>>,
+    debouncer: RefCell<Debouncer<U16>>,
     switches: Vec<Switch, U16>
 }
 
-impl TCA9555<'_> {
+impl TCA9555 {
 
     pub fn new(addr: u8, debounce: u16) -> Self {
         Self {
@@ -30,13 +32,13 @@ impl TCA9555<'_> {
         }
     }
 
-    fn ref_switch(&self, i: usize) -> &'_ Switch {
+    fn ref_switch(&'static self, i: usize) -> &'static Switch {
         &self.switches[i]
     }
 }
 
 /// I2Cの実装がMCU（チップセット）毎にバラバラなので、エラーの型をジェネリクスのパラメータで渡す形になってしまう
-impl<I2cError> Device<I2cError> for TCA9555<'_>{
+impl<I2cError> Device<I2cError> for TCA9555 {
 
     fn init_device(&self, i2c: &mut dyn I2C<I2cError>) -> Result<(), I2cError> {
         // All input
@@ -61,16 +63,27 @@ impl<I2cError> Device<I2cError> for TCA9555<'_>{
         Ok(Pins16(pressed))
     }
 
-    fn assign(&mut self, pin: usize, switch: Switch) -> Result<&Switch, &Switch> {
+    fn assign(&mut self, pin: usize, switch: Switch) -> Result<usize, usize> {
         if pin < 16 {
             self.switches[pin] = switch;
-            Ok(&switch)
+            Ok(pin)
         } else {
-            Err(&switch)
+            Err(pin)
         }
     }
 
-    fn add_event(&self, pins: &[bool], events: &mut EventBuffer<'_>) {
-        self.debouncer.borrow_mut().add_events(pins, events, |i| self.ref_switch(i))
+    fn has_assigned(&self) -> bool {
+        self.switches.iter().any(|s| s.actions.len() > 0)
+    }
+
+    fn add_event(&'static self, pins: &[bool], events: &mut EventBuffer) {
+        let indexes = self.debouncer.borrow_mut().events(pins);
+        for idx in indexes.buffer {
+            let event = match idx {
+                PressedAt(i) => Pressed(self.ref_switch(i)),
+                ReleasedAt(i) => Released(self.ref_switch(i))
+            };
+            let _ = events.buffer.push(event);
+        }
     }
 }

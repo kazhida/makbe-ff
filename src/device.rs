@@ -39,8 +39,11 @@ pub trait Device<I2cError>
     fn read_device(&self, i2c: &mut dyn I2C<I2cError>) -> Result<DeviceState, I2cError>;
 
     /// # キーの割付
-    fn assign(&mut self, pin: usize, switch: Switch) -> Result<&Switch, &Switch>;
+    fn assign(&mut self, pin: usize, switch: Switch) -> Result<usize, usize>;
+
+    /// # キーが割り付けられているか
+    fn has_assigned(&self) -> bool;
 
     /// # イベントの検出
-    fn add_event(&self, pins: &[bool], events: &mut EventBuffer);
+    fn add_event(&'static self, pins: &[bool], events: &mut EventBuffer);
 }

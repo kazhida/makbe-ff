@@ -56,7 +56,7 @@ impl Position {
 pub struct Switch {
     pub shape: Shape,
     pub position: Position,
-    actions: Vec<Action, U4>,
+    pub actions: Vec<Action, U4>,
     default_action: Action
 }
 
