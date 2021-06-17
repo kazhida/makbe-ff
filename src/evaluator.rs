@@ -22,7 +22,7 @@ pub struct Evaluator<'a> {
     stacked: ArrayDeque<[Stacked<'a>; 16], arraydeque::behavior::Wrapping>
 }
 
-impl Evaluator<'_> {
+impl<'a> Evaluator<'a> {
 
     pub fn new() -> Self {
         Self {
@@ -33,7 +33,7 @@ impl Evaluator<'_> {
         }
     }
 
-    pub fn eval(&mut self, event: KeyEvent) -> impl Iterator<Item=KeyCode> + '_ {
+    pub fn eval(&mut self, event: KeyEvent) -> impl Iterator<Item=KeyCode> + 'a {
         if let Some(stacked) = self.stacked.push_back(event.into()) {
             self.waiting_into_hold();
             self.unstack(stacked);
@@ -49,7 +49,7 @@ impl Evaluator<'_> {
         self.keycodes()
     }
 
-    pub fn tick(&mut self) -> impl Iterator<Item = KeyCode> +'_ {
+    pub fn tick(&mut self) -> impl Iterator<Item = KeyCode> + 'a {
         self.states = self.states.iter().filter_map(KeyState::tick).collect();
         self.stacked.iter_mut().for_each(Stacked::tick);
         match &mut self.waiting {
@@ -67,7 +67,7 @@ impl Evaluator<'_> {
         self.keycodes()
     }
 
-    pub fn keycodes(&self) -> impl Iterator<Item = KeyCode> + '_ {
+    pub fn keycodes(&self) -> impl Iterator<Item = KeyCode> + 'a {
         self.states.iter().filter_map(KeyState::keycode)
     }
 
@@ -76,7 +76,7 @@ impl Evaluator<'_> {
             let hold = w.hold;
             let switch = w.switch;
             self.waiting = None;
-            self.do_action(hold, switch, 0);
+            self.do_action(*hold, switch, 0);
         }
     }
 
@@ -85,7 +85,7 @@ impl Evaluator<'_> {
             let tap = w.tap;
             let switch = w.switch;
             self.waiting = None;
-            self.do_action(tap, switch, 0);
+            self.do_action(*tap, switch, 0);
         }
     }
 
@@ -105,24 +105,24 @@ impl Evaluator<'_> {
         }
     }
 
-    fn press_as_action(&self, switch: &'_ Switch, layer: usize) -> &Action {
+    fn press_as_action(&self, switch: &Switch, layer: usize) -> Action {
         let action = switch.action_at(layer);
         match action {
-            None => &NoOp,
+            None => NoOp,
             Some(Trans) => {
                 if layer != self.default_layer {
                     self.press_as_action(switch, self.default_layer)
                 } else {
-                    &NoOp
+                    NoOp
                 }
             }
-            Some(a) => a
+            Some(a) => *a
         }
     }
 
-    fn do_action(&mut self, action: &Action, switch: &Switch, delay: u16) {
+    fn do_action(&mut self, action: Action, switch: &Switch, delay: u16) {
         assert!(self.waiting.is_none());
-        match *action {
+        match action {
             NoOp | Trans => (),
             HoldTap { timeout, hold, tap } => {
                 let waiting = WaitingState {
@@ -154,7 +154,7 @@ impl Evaluator<'_> {
             }
             MultipleActions(v) => {
                 for action in v {
-                    self.do_action(action, switch, delay);
+                    self.do_action(action.clone(), switch, delay);
                 }
             }
             Layer(value) => {
@@ -245,8 +245,8 @@ struct Stacked<'a> {
     since: u16,
 }
 
-impl <'a> From<KeyEvent<'a>> for Stacked<'_> {
-    fn from(event: KeyEvent<'a>) -> Self {
+impl<'a> From<KeyEvent<'a>> for Stacked<'a> {
+    fn from(event: KeyEvent<'_>) -> Self {
         Stacked { event, since: 0 }
     }
 }
