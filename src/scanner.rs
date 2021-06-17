@@ -3,42 +3,46 @@
 //
 
 use heapless::{Vec, ArrayLength};
-use core::ops::Deref;
 use crate::device::Device;
 use crate::i2c::I2C;
-use crate::event::EventBuffer;
 use crate::device::DeviceState::{Pins16, Pins8};
 use crate::evaluator::Evaluator;
+use core::ops::DerefMut;
 
 /// deviceを使用して、キーの状態をスキャンするもの
-pub struct Scanner<'a, I2cError: 'static, NumDevices>
-    where
-        NumDevices: ArrayLength<&'a dyn Device<I2cError>>
+pub struct Scanner<'a, I2cError>
 {
-    i2c: &'static mut dyn I2C<I2cError>,
-    devices: Vec<&'a dyn Device<I2cError>, NumDevices>,
-    evaluator: Evaluator<'static>
+    i2c: &'a mut dyn I2C<I2cError>,
+    evaluator: Evaluator<'a>
 }
 
-impl <'a, I2cError, NumDevices> Scanner<'a, I2cError, NumDevices>
-    where
-        NumDevices: ArrayLength<&'a dyn Device<I2cError>>
+impl <'a, I2cError> Scanner<'a, I2cError>
 {
-    pub fn scan(&'static mut self) -> EventBuffer {
-        // キー・イベントの収拾
-        let mut event_buffer = EventBuffer::new();
-        for d in self.devices.iter() {
-            let device = d.deref();
+    /// キー・イベントの収拾
+    pub fn scan<NumDevices>(&mut self, devices: &Vec<&'a mut dyn Device<I2cError>, NumDevices>)
+        where
+            NumDevices: ArrayLength<&'a mut dyn Device<I2cError>>
+    {
+        // デバイス毎にイベント取得
+        for d in devices.iter() {
+            let device = d.deref_mut();
             let result = device.read_device(self.i2c);
             match result {
                 Ok(state) => {
                     match state {
+                        // 16ビットのI/Oエクスパンダ
                         Pins16(pins) => {
-                            device.add_event(&pins, &mut event_buffer)
+                            for e in device.pick_events(&pins).buffer {
+                                self.evaluator.eval(e.clone());
+                            }
                         }
+                        // 8ビットのI/Oエクスパンダ
                         Pins8(pins) => {
-                            device.add_event(&pins, &mut event_buffer)
+                            for e in device.pick_events(&pins).buffer {
+                                self.evaluator.eval(e.clone());
+                            }
                         }
+                        // その他のデバイス
                         _ => {
                             // ロータリーエンコーダのこととかはまだ考えない
                         }
@@ -49,6 +53,5 @@ impl <'a, I2cError, NumDevices> Scanner<'a, I2cError, NumDevices>
                 }
             }
         }
-        event_buffer
     }
 }

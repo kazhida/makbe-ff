@@ -6,6 +6,7 @@
 use crate::i2c::I2C;
 use crate::switch::Switch;
 use crate::event::EventBuffer;
+use heapless::{Vec, ArrayLength};
 
 /// デバイスが返す状態
 ///
@@ -45,5 +46,12 @@ pub trait Device<I2cError>
     fn has_assigned(&self) -> bool;
 
     /// # イベントの検出
-    fn add_event(&'static self, pins: &[bool], events: &mut EventBuffer);
+    fn pick_events(&mut self, pins: &[bool]) -> EventBuffer;
+}
+
+pub struct DeviceHolder<'a, NumDevices, I2cError>
+    where
+        NumDevices: ArrayLength<&'a dyn Device<I2cError>>
+{
+    devices: Vec<&'a dyn Device<I2cError>, NumDevices>
 }

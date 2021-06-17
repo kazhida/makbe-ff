@@ -142,7 +142,7 @@ impl Switch {
         self
     }
 
-    pub fn action_at(&self, layer: usize) -> Option<&Action> {
+    pub fn action_at(&self, layer: usize) -> Option<&'_ Action> {
         if layer < self.actions.len() {
             Some(&self.actions[layer])
         } else {
@@ -158,7 +158,7 @@ impl Default for Switch {
 #[macro_export]
 macro_rules! switch_pool {
     ($(#[$top_attr:meta])* struct $Type:ident,
-    $( $(#[$attr:meta])* sw $name:ident = $switch_expr:expr),
+    $( $(#[$attr:meta])* switch $name:ident = $switch_expr:expr),
     + , ) => {
 
         paste::item! {

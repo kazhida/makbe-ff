@@ -6,6 +6,7 @@
 use crate::event::{KeyEvent, IndexEvents};
 use heapless::{Vec, ArrayLength};
 use crate::event::IndexEvent::{PressedAt, ReleasedAt};
+use core::marker::PhantomData;
 
 #[derive(Default, PartialEq, Eq)]
 pub struct Keys<NumPins>
@@ -26,26 +27,28 @@ impl<NumPins> Keys<NumPins>
     }
 }
 
-pub struct Debouncer<NumPins>
+pub struct Debouncer<'a, NumPins>
     where
-        NumPins: ArrayLength<bool> + ArrayLength<KeyEvent> + core::cmp::PartialEq
+        NumPins: ArrayLength<bool> + ArrayLength<KeyEvent<'a>> + core::cmp::PartialEq
 {
     cur: Keys<NumPins>,
     new: Keys<NumPins>,
     count: u16,
-    limit: u16
+    limit: u16,
+    phantom: &'a PhantomData<* const()>
 }
 
-impl <NumPins> Debouncer<NumPins>
+impl <'a, NumPins> Debouncer<'a, NumPins>
     where
-        NumPins: ArrayLength<bool> + ArrayLength<KeyEvent> + core::cmp::PartialEq
+        NumPins: ArrayLength<bool> + ArrayLength<KeyEvent<'a>> + core::cmp::PartialEq
 {
     pub fn new(limit: u16) -> Self {
         Self {
             cur: Keys::default(),
             new: Keys::default(),
             count: 0,
-            limit
+            limit,
+            phantom: &Default::default()
         }
     }
 

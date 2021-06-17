@@ -13,32 +13,31 @@ use core::cell::RefCell;
 use crate::device::DeviceState::Pins8;
 use crate::event::IndexEvent::{PressedAt, ReleasedAt};
 use crate::event::KeyEvent::{Pressed, Released};
+use core::marker::PhantomData;
 
 /// TCA9554
 /// PCA9554も同じ
-pub struct TCA9554 {
+pub struct TCA9554<'a, I2cError> {
     dev_addr: u8,
-    debouncer: RefCell<Debouncer<U8>>,
-    switches: Vec<Switch, U8>
+    debouncer: RefCell<Debouncer<'a, U8>>,
+    switches: Vec<Switch, U8>,
+    phantom: PhantomData<I2cError>
 }
 
-impl TCA9554 {
+impl<I2cError> TCA9554<'_, I2cError> {
 
     pub fn new(addr: u8, debounce: u16) -> Self {
         Self {
             dev_addr: 0x20u8 + addr,
             debouncer: RefCell::new(Debouncer::new(debounce)),
-            switches: Vec::default()
+            switches: Vec::default(),
+            phantom: Default::default()
         }
-    }
-
-    fn ref_switch(&'static self, i: usize) -> &'static Switch {
-        &self.switches[i]
     }
 }
 
 /// I2Cの実装がMCU（チップセット）毎にバラバラなので、エラーの型をジェネリクスのパラメータで渡す形になってしまう
-impl<I2cError> Device<I2cError> for TCA9554 {
+impl<I2cError> Device<I2cError> for TCA9554<'_, I2cError> {
 
     fn init_device(&self, i2c: &mut dyn I2C<I2cError>) -> Result<(), I2cError> {
         // All input
@@ -73,14 +72,16 @@ impl<I2cError> Device<I2cError> for TCA9554 {
         self.switches.iter().any(|s| s.actions.len() > 0)
     }
 
-    fn add_event(&'static self, pins: &[bool], events: &mut EventBuffer) {
+    fn pick_events(&mut self, pins: &[bool]) -> EventBuffer {
+        let mut event_buffer = EventBuffer::new();
         let indexes = self.debouncer.borrow_mut().events(pins);
         for idx in indexes.buffer {
             let event = match idx {
-                PressedAt(i) => Pressed(self.ref_switch(i)),
-                ReleasedAt(i) => Released(self.ref_switch(i))
+                PressedAt(i) => Pressed(&self.switches.get(i).unwrap()),
+                ReleasedAt(i) => Released(&self.switches.get(i).unwrap())
             };
-            let _ = events.buffer.push(event);
+            event_buffer.buffer.push(event);
         }
+        event_buffer
     }
 }

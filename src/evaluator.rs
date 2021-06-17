@@ -18,11 +18,11 @@ use KeyState::*;
 pub struct Evaluator<'a> {
     default_layer: usize,
     states: Vec<KeyState<'a>, U64>,
-    waiting: Option<WaitingState>,
-    stacked: ArrayDeque<[Stacked; 16], arraydeque::behavior::Wrapping>
+    waiting: Option<WaitingState<'a>>,
+    stacked: ArrayDeque<[Stacked<'a>; 16], arraydeque::behavior::Wrapping>
 }
 
-impl <'a> Evaluator<'a> {
+impl Evaluator<'_> {
 
     pub fn new() -> Self {
         Self {
@@ -33,7 +33,7 @@ impl <'a> Evaluator<'a> {
         }
     }
 
-    pub fn eval(&'a mut self, event: KeyEvent) -> impl Iterator<Item=KeyCode> + 'a {
+    pub fn eval(&mut self, event: KeyEvent) -> impl Iterator<Item=KeyCode> + '_ {
         if let Some(stacked) = self.stacked.push_back(event.into()) {
             self.waiting_into_hold();
             self.unstack(stacked);
@@ -49,7 +49,7 @@ impl <'a> Evaluator<'a> {
         self.keycodes()
     }
 
-    pub fn tick(&'a mut self) -> impl Iterator<Item = KeyCode> + 'a {
+    pub fn tick(&mut self) -> impl Iterator<Item = KeyCode> +'_ {
         self.states = self.states.iter().filter_map(KeyState::tick).collect();
         self.stacked.iter_mut().for_each(Stacked::tick);
         match &mut self.waiting {
@@ -67,7 +67,7 @@ impl <'a> Evaluator<'a> {
         self.keycodes()
     }
 
-    pub fn keycodes(&'a self) -> impl Iterator<Item = KeyCode> + 'a {
+    pub fn keycodes(&self) -> impl Iterator<Item = KeyCode> + '_ {
         self.states.iter().filter_map(KeyState::keycode)
     }
 
@@ -105,7 +105,7 @@ impl <'a> Evaluator<'a> {
         }
     }
 
-    fn press_as_action(&self, switch: &'static Switch, layer: usize) -> &'static Action {
+    fn press_as_action(&self, switch: &'_ Switch, layer: usize) -> &Action {
         let action = switch.action_at(layer);
         match action {
             None => &NoOp,
@@ -120,7 +120,7 @@ impl <'a> Evaluator<'a> {
         }
     }
 
-    fn do_action(&mut self, action: &Action, switch: &'static Switch, delay: u16) {
+    fn do_action(&mut self, action: &Action, switch: &Switch, delay: u16) {
         assert!(self.waiting.is_none());
         match *action {
             NoOp | Trans => (),
@@ -217,14 +217,14 @@ impl <'a> KeyState<'a> {
 }
 
 #[derive(Debug, Copy, Clone)]
-struct WaitingState {
-    switch: &'static Switch,
+struct WaitingState<'a> {
+    switch: &'a Switch,
     timeout: u16,
-    hold: &'static Action,
-    tap: &'static Action,
+    hold: &'a Action,
+    tap: &'a Action,
 }
 
-impl WaitingState {
+impl<'a> WaitingState<'a> {
 
     fn tick(&mut self) -> bool {
         self.timeout = self.timeout.saturating_sub(1);
@@ -240,18 +240,18 @@ impl WaitingState {
 }
 
 #[derive(Debug)]
-struct Stacked {
-    event: KeyEvent,
+struct Stacked<'a> {
+    event: KeyEvent<'a>,
     since: u16,
 }
 
-impl From<KeyEvent> for Stacked {
-    fn from(event: KeyEvent) -> Self {
+impl <'a> From<KeyEvent<'a>> for Stacked<'_> {
+    fn from(event: KeyEvent<'a>) -> Self {
         Stacked { event, since: 0 }
     }
 }
 
-impl Stacked {
+impl Stacked<'_> {
     fn tick(&mut self) {
         self.since = self.since.saturating_add(1);
     }
