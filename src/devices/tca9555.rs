@@ -17,14 +17,14 @@ use core::marker::PhantomData;
 
 /// TCA9555
 /// PCA9555も同じ
-pub struct TCA9555<'a, I2cError> {
+pub struct TCA9555<E> {
     dev_addr: u8,
-    debouncer: RefCell<Debouncer<'a, U16>>,
-    switches: Vec<Switch, U16>,
-    phantom: PhantomData<I2cError>
+    debouncer: RefCell<Debouncer<U16>>,
+    switches: Vec<&'static Switch, U16>,
+    phantom: PhantomData<E>
 }
 
-impl<I2cError> TCA9555<'_, I2cError> {
+impl<E> TCA9555<E> {
 
     pub fn new(addr: u8, debounce: u16) -> Self {
         Self {
@@ -37,15 +37,15 @@ impl<I2cError> TCA9555<'_, I2cError> {
 }
 
 /// I2Cの実装がMCU（チップセット）毎にバラバラなので、エラーの型をジェネリクスのパラメータで渡す形になってしまう
-impl<I2cError> Device<I2cError> for TCA9555<'_, I2cError> {
+impl<E> Device<E> for TCA9555<E> {
 
-    fn init_device(&self, i2c: &mut dyn I2C<I2cError>) -> Result<(), I2cError> {
+    fn init_device(&self, i2c: &mut dyn I2C<E>) -> Result<(), E> {
         // All input
         i2c.write(self.dev_addr, &[0x06_u8, 0xFF_u8])?;
         i2c.write(self.dev_addr, &[0x07_u8, 0xFF_u8])
     }
 
-    fn read_device(&self, i2c: &mut dyn I2C<I2cError>) -> Result<DeviceState, I2cError> {
+    fn read_device(&self, i2c: &mut dyn I2C<E>) -> Result<DeviceState, E> {
         let reg_addr = &[0x00_u8];
         let data = &mut [0x00_u8, 0x00_u8];
         i2c.write_read(self.dev_addr, reg_addr, data)?;
@@ -62,7 +62,7 @@ impl<I2cError> Device<I2cError> for TCA9555<'_, I2cError> {
         Ok(Pins16(pressed))
     }
 
-    fn assign(&mut self, pin: usize, switch: Switch) -> Result<usize, usize> {
+    fn assign(&mut self, pin: usize, switch: &'static Switch) -> Result<usize, usize> {
         if pin < 16 {
             self.switches[pin] = switch;
             Ok(pin)
@@ -75,15 +75,15 @@ impl<I2cError> Device<I2cError> for TCA9555<'_, I2cError> {
         self.switches.iter().any(|s| s.actions.len() > 0)
     }
 
-    fn pick_events(&mut self, pins: &[bool]) -> EventBuffer {
+    fn pick_events(&self, pins: &[bool]) -> EventBuffer {
         let mut event_buffer = EventBuffer::new();
         let indexes = self.debouncer.borrow_mut().events(pins);
         for idx in indexes.buffer {
             let event = match idx {
-                PressedAt(i) => Pressed(&self.switches.get(i).unwrap()),
-                ReleasedAt(i) => Released(&self.switches.get(i).unwrap())
+                PressedAt(i) => Pressed(self.switches.get(i).unwrap().clone()),
+                ReleasedAt(i) => Released(self.switches.get(i).unwrap().clone())
             };
-            event_buffer.buffer.push(event);
+            let _ = event_buffer.buffer.push(event);
         }
         event_buffer
     }

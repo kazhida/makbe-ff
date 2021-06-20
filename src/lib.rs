@@ -11,3 +11,4 @@ pub mod i2c;
 pub mod event;
 pub mod debouncer;
 pub mod evaluator;
+pub mod reporter;

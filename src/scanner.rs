@@ -2,31 +2,35 @@
 // All right reserved.
 //
 
-use heapless::{Vec, ArrayLength};
-use crate::device::Device;
+use crate::device::DeviceHolder;
 use crate::i2c::I2C;
 use crate::device::DeviceState::{Pins16, Pins8};
 use crate::evaluator::Evaluator;
-use core::ops::DerefMut;
+use core::ops::Deref;
+use core::marker::PhantomData;
 
 /// deviceを使用して、キーの状態をスキャンするもの
-pub struct Scanner<'a, I2cError>
-{
-    i2c: &'a mut dyn I2C<I2cError>,
-    evaluator: Evaluator<'a>
+pub struct Scanner<I2cError> {
+    evaluator: Evaluator,
+    phantom: PhantomData<I2cError>
 }
 
-impl <'a, I2cError> Scanner<'a, I2cError>
+impl <I2cError> Scanner<I2cError>
 {
+
+    pub fn new(evaluator: Evaluator<>) -> Self {
+        Self {
+            evaluator,
+            phantom: Default::default()
+        }
+    }
+
     /// キー・イベントの収拾
-    pub fn scan<NumDevices>(&mut self, devices: &Vec<&'a mut dyn Device<I2cError>, NumDevices>)
-        where
-            NumDevices: ArrayLength<&'a mut dyn Device<I2cError>>
-    {
+    pub fn scan(&mut self, i2c: &mut dyn I2C<I2cError>, holder: &DeviceHolder<I2cError>) {
         // デバイス毎にイベント取得
-        for d in devices.iter() {
-            let device = d.deref_mut();
-            let result = device.read_device(self.i2c);
+        for d in holder.devices.deref() {
+            let device = d.deref();
+            let result = device.read_device(i2c);
             match result {
                 Ok(state) => {
                     match state {
@@ -48,7 +52,7 @@ impl <'a, I2cError> Scanner<'a, I2cError>
                         }
                     }
                 },
-                Err(e) => {
+                Err(_) => {
                     // どうしよっか？
                 }
             }

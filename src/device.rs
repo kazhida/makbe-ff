@@ -6,7 +6,8 @@
 use crate::i2c::I2C;
 use crate::switch::Switch;
 use crate::event::EventBuffer;
-use heapless::{Vec, ArrayLength};
+use heapless::Vec;
+use heapless::consts::U128;
 
 /// デバイスが返す状態
 ///
@@ -40,18 +41,15 @@ pub trait Device<I2cError>
     fn read_device(&self, i2c: &mut dyn I2C<I2cError>) -> Result<DeviceState, I2cError>;
 
     /// # キーの割付
-    fn assign(&mut self, pin: usize, switch: Switch) -> Result<usize, usize>;
+    fn assign(&mut self, pin: usize, switch: &'static Switch) -> Result<usize, usize>;
 
     /// # キーが割り付けられているか
     fn has_assigned(&self) -> bool;
 
     /// # イベントの検出
-    fn pick_events(&mut self, pins: &[bool]) -> EventBuffer;
+    fn pick_events(&self, pins: &[bool]) -> EventBuffer;
 }
 
-pub struct DeviceHolder<'a, NumDevices, I2cError>
-    where
-        NumDevices: ArrayLength<&'a dyn Device<I2cError>>
-{
-    devices: Vec<&'a dyn Device<I2cError>, NumDevices>
+pub struct DeviceHolder<I2cError: 'static> {
+    pub devices: Vec<&'static dyn Device<I2cError>, U128>
 }

@@ -62,6 +62,14 @@ pub struct Switch {
 
 impl Switch {
 
+    pub fn apply<F>(mut self, mut f: F) -> Self
+        where
+            F: FnMut(&mut Switch) -> &mut Switch
+    {
+        f(&mut self);
+        self
+    }
+
     /// 何もしないダミーキー（Device内の初期値とかに使用する）
     pub fn dummy() -> Self {
         Self {
@@ -142,7 +150,7 @@ impl Switch {
         self
     }
 
-    pub fn action_at(&self, layer: usize) -> Option<&'_ Action> {
+    pub fn action_at(&'static self, layer: usize) -> Option<&'static Action> {
         if layer < self.actions.len() {
             Some(&self.actions[layer])
         } else {

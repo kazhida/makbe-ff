@@ -17,14 +17,14 @@ use core::marker::PhantomData;
 
 /// TCA9554
 /// PCA9554も同じ
-pub struct TCA9554<'a, I2cError> {
+pub struct TCA9554<E> {
     dev_addr: u8,
-    debouncer: RefCell<Debouncer<'a, U8>>,
-    switches: Vec<Switch, U8>,
-    phantom: PhantomData<I2cError>
+    debouncer: RefCell<Debouncer<U8>>,
+    switches: Vec<&'static Switch, U8>,
+    phantom: PhantomData<E>
 }
 
-impl<I2cError> TCA9554<'_, I2cError> {
+impl<E> TCA9554<E> {
 
     pub fn new(addr: u8, debounce: u16) -> Self {
         Self {
@@ -37,15 +37,15 @@ impl<I2cError> TCA9554<'_, I2cError> {
 }
 
 /// I2Cの実装がMCU（チップセット）毎にバラバラなので、エラーの型をジェネリクスのパラメータで渡す形になってしまう
-impl<I2cError> Device<I2cError> for TCA9554<'_, I2cError> {
+impl<E> Device<E> for TCA9554<E> {
 
-    fn init_device(&self, i2c: &mut dyn I2C<I2cError>) -> Result<(), I2cError> {
+    fn init_device(&self, i2c: &mut dyn I2C<E>) -> Result<(), E> {
         // All input
         i2c.write(self.dev_addr, &[0x06_u8, 0xFF_u8])?;
         i2c.write(self.dev_addr, &[0x07_u8, 0xFF_u8])
     }
 
-    fn read_device(&self, i2c: &mut dyn I2C<I2cError>) -> Result<DeviceState, I2cError> {
+    fn read_device(&self, i2c: &mut dyn I2C<E>) -> Result<DeviceState, E> {
         let reg_addr = &[0x00_u8];
         let data = &mut [0x00_u8];
         i2c.write_read(self.dev_addr, reg_addr, data)?;
@@ -59,7 +59,7 @@ impl<I2cError> Device<I2cError> for TCA9554<'_, I2cError> {
         Ok(Pins8(pressed))
     }
 
-    fn assign(&mut self, pin: usize, switch: Switch) -> Result<usize, usize> {
+    fn assign(&mut self, pin: usize, switch: &'static Switch) -> Result<usize, usize> {
         if pin < 8 {
             self.switches[pin] = switch;
             Ok(pin)
@@ -72,7 +72,7 @@ impl<I2cError> Device<I2cError> for TCA9554<'_, I2cError> {
         self.switches.iter().any(|s| s.actions.len() > 0)
     }
 
-    fn pick_events(&mut self, pins: &[bool]) -> EventBuffer {
+    fn pick_events(&self, pins: &[bool]) -> EventBuffer {
         let mut event_buffer = EventBuffer::new();
         let indexes = self.debouncer.borrow_mut().events(pins);
         for idx in indexes.buffer {
@@ -80,7 +80,7 @@ impl<I2cError> Device<I2cError> for TCA9554<'_, I2cError> {
                 PressedAt(i) => Pressed(&self.switches.get(i).unwrap()),
                 ReleasedAt(i) => Released(&self.switches.get(i).unwrap())
             };
-            event_buffer.buffer.push(event);
+            let _ = event_buffer.buffer.push(event);
         }
         event_buffer
     }

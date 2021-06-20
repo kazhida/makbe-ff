@@ -10,98 +10,100 @@ use makbe_ff::switch_pool;
 use makbe_ff::device::Device;
 use makbe_ff::devices::tca9555::TCA9555;
 use keyberon::key_code::KeyCode::*;
-use xiao_m0::hal::common::sercom::I2CError;
 use keyberon::action::{k, l, Action};
 use keyberon::action::Action::HoldTap;
-use xiao_m0::clock::AcAnaClock;
+use xiao_m0::sercom::I2CError;
 
 
 switch_pool!(
     struct SwitchPool,
 
-    switch Escape = Switch::new(0.0, 0.0),
-    switch Kb1 = Switch::new(1.0, 0.0),
-    switch Kb2 = Switch::new(2.0, 0.0),
-    switch Kb3 = Switch::new(3.0, 0.0),
-    switch Kb4 = Switch::new(4.0, 0.0),
-    switch Kb5 = Switch::new(5.0, 0.0),
-    switch Kb6 = Switch::new(9.0, 0.0),
-    switch Kb7 = Switch::new(10.0, 0.0),
-    switch Kb8 = Switch::new(11.0, 0.0),
-    switch Kb9 = Switch::new(12.0, 0.0),
-    switch Kb0 = Switch::new(13.0, 0.0),
-    switch Minus = Switch::new(14.0, 0.0),
-    switch Equal = Switch::new(15.0, 0.0),
-    switch Bslash = Switch::new(16.0, 0.0),
-    switch Grave = Switch::new(17.0, 0.0),
+    switch escape = Switch::new(0.0, 0.0).apply(|s| s.append_action(k(Escape))),
+    switch kb1 = Switch::new(1.0, 0.0).apply(|s| s.append_action(k(Kb1))),
+    switch kb2 = Switch::new(2.0, 0.0).apply(|s| s.append_action(k(Kb2))),
+    switch kb3 = Switch::new(3.0, 0.0).apply(|s| s.append_action(k(Kb3))),
+    switch kb4 = Switch::new(4.0, 0.0).apply(|s| s.append_action(k(Kb4))),
+    switch kb5 = Switch::new(5.0, 0.0).apply(|s| s.append_action(k(Kb5))),
+    switch kb6 = Switch::new(9.0, 0.0).apply(|s| s.append_action(k(Kb6))),
+    switch kb7 = Switch::new(10.0, 0.0).apply(|s| s.append_action(k(Kb7))),
+    switch kb8 = Switch::new(11.0, 0.0).apply(|s| s.append_action(k(Kb8))),
+    switch kb9 = Switch::new(12.0, 0.0).apply(|s| s.append_action(k(Kb9))),
+    switch kb0 = Switch::new(13.0, 0.0).apply(|s| s.append_action(k(Kb0))),
+    switch minus = Switch::new(14.0, 0.0).apply(|s| s.append_action(k(Minus))),
+    switch equal = Switch::new(15.0, 0.0).apply(|s| s.append_action(k(Equal))),
+    switch b_slash = Switch::new(16.0, 0.0).apply(|s| s.append_action(k(Bslash))),
+    switch grave = Switch::new(17.0, 0.0).apply(|s| s.append_action(k(Grave))),
 
-    switch Tab = Switch::new_with_width(0.0, 1.0, 1.5),
-    switch Q = Switch::new(1.5, 1.0),
-    switch W = Switch::new(2.5, 1.0),
-    switch E = Switch::new(3.5, 1.0),
-    switch R = Switch::new(4.5, 1.0),
-    switch T = Switch::new(5.5, 1.0),
-    switch Y = Switch::new(9.5, 1.0),
-    switch U = Switch::new(10.5, 1.0),
-    switch I = Switch::new(11.5, 1.0),
-    switch O = Switch::new(12.5, 1.0),
-    switch P = Switch::new(13.5, 1.0),
-    switch LBracket = Switch::new(14.5, 1.0),
-    switch RBracket = Switch::new(15.5, 1.0),
-    switch BSpace = Switch::new_with_width(16.5, 1.0, 1.5),
+    switch tab = Switch::new_with_width(0.0, 1.0, 1.5).apply(|s| s.append_action(FUNCS_TAB)),
+    switch q = Switch::new(1.5, 1.0).apply(|s| s.append_action(k(Q))),
+    switch w = Switch::new(2.5, 1.0).apply(|s| s.append_action(k(W))),
+    switch e = Switch::new(3.5, 1.0).apply(|s| s.append_action(k(E))),
+    switch r = Switch::new(4.5, 1.0).apply(|s| s.append_action(k(R))),
+    switch t = Switch::new(5.5, 1.0).apply(|s| s.append_action(k(T))),
+    switch y = Switch::new(9.5, 1.0).apply(|s| s.append_action(k(Y))),
+    switch u = Switch::new(10.5, 1.0).apply(|s| s.append_action(k(U))),
+    switch i = Switch::new(11.5, 1.0).apply(|s| s.append_action(k(I))),
+    switch o = Switch::new(12.5, 1.0).apply(|s| s.append_action(k(O))),
+    switch p = Switch::new(13.5, 1.0).apply(|s| s.append_action(k(P))),
+    switch l_bracket = Switch::new(14.5, 1.0).apply(|s| s.append_action(k(LBracket))),
+    switch r_bracket = Switch::new(15.5, 1.0).apply(|s| s.append_action(k(RBracket))),
+    switch b_space = Switch::new_with_width(16.5, 1.0, 1.5).apply(|s| s.append_action(k(BSpace))),
 
-    switch LCtrl = Switch::new_with_width(0.0, 2.0, 1.75),
-    switch A = Switch::new(1.75, 2.0),
-    switch S = Switch::new(2.75, 2.0),
-    switch D = Switch::new(3.75, 2.0),
-    switch F = Switch::new(4.75, 2.0),
-    switch G = Switch::new(5.75, 2.0),
-    switch H = Switch::new(9.75, 2.0),
-    switch J = Switch::new(10.75, 2.0),
-    switch K = Switch::new(11.75, 2.0),
-    switch L = Switch::new(12.75, 2.0),
-    switch SColon = Switch::new(13.75, 2.0),
-    switch Quote = Switch::new(14.75, 2.0),
-    switch Enter = Switch::new_with_width(15.75, 2.0, 2.25),
+    switch l_ctrl = Switch::new_with_width(0.0, 2.0, 1.75).apply(|s| s.append_action(k(LCtrl))),
+    switch a = Switch::new(1.75, 2.0).apply(|s| s.append_action(k(A))),
+    switch s = Switch::new(2.75, 2.0).apply(|s| s.append_action(k(S))),
+    switch d = Switch::new(3.75, 2.0).apply(|s| s.append_action(k(D))),
+    switch f = Switch::new(4.75, 2.0).apply(|s| s.append_action(k(F))),
+    switch g = Switch::new(5.75, 2.0).apply(|s| s.append_action(k(G))),
+    switch h = Switch::new(9.75, 2.0).apply(|s| s.append_action(k(H))),
+    switch j = Switch::new(10.75, 2.0).apply(|s| s.append_action(k(J))),
+    switch k = Switch::new(11.75, 2.0).apply(|s| s.append_action(k(K))),
+    switch l = Switch::new(12.75, 2.0).apply(|s| s.append_action(k(L))),
+    switch s_colon = Switch::new(13.75, 2.0).apply(|s| s.append_action(k(SColon))),
+    switch quote = Switch::new(14.75, 2.0).apply(|s| s.append_action(k(Quote))),
+    switch enter = Switch::new_with_width(15.75, 2.0, 2.25).apply(|s| s.append_action(k(Enter))),
 
-    switch LShift = Switch::new_with_width(0.0, 3.0, 2.0),
-    switch Z = Switch::new(2.0, 3.0),
-    switch X = Switch::new(3.0, 3.0),
-    switch C = Switch::new(4.0, 3.0),
-    switch V = Switch::new(5.0, 3.0),
-    switch B = Switch::new(6.0, 3.0),
-    switch N = Switch::new(10.0, 3.0),
-    switch M = Switch::new(11.0, 3.0),
-    switch Comma = Switch::new(12.0, 3.0),
-    switch Dot = Switch::new(13.0, 3.0),
-    switch Slash = Switch::new(14.0, 3.0),
-    switch RShift = Switch::new(15.0, 3.0),
-    switch Up = Switch::new(16.0, 3.0),
-    switch Delete = Switch::new(17.0, 3.0),
+    switch l_shift = Switch::new_with_width(0.0, 3.0, 2.0).apply(|s| s.append_action(k(LCtrl))),
+    switch z = Switch::new(2.0, 3.0).apply(|s| s.append_action(k(Z))),
+    switch x = Switch::new(3.0, 3.0).apply(|s| s.append_action(k(X))),
+    switch c = Switch::new(4.0, 3.0).apply(|s| s.append_action(k(C))),
+    switch v = Switch::new(5.0, 3.0).apply(|s| s.append_action(k(V))),
+    switch b = Switch::new(6.0, 3.0).apply(|s| s.append_action(k(B))),
+    switch n = Switch::new(10.0, 3.0).apply(|s| s.append_action(k(N))),
+    switch m = Switch::new(11.0, 3.0).apply(|s| s.append_action(k(M))),
+    switch comma = Switch::new(12.0, 3.0).apply(|s| s.append_action(k(Comma))),
+    switch dot = Switch::new(13.0, 3.0).apply(|s| s.append_action(k(Dot))),
+    switch slash = Switch::new(14.0, 3.0).apply(|s| s.append_action(k(Slash))),
+    switch r_shift = Switch::new(15.0, 3.0).apply(|s| s.append_action(k(RShift))),
+    switch up = Switch::new(16.0, 3.0).apply(|s| s.append_action(k(Up))),
+    switch delete = Switch::new(17.0, 3.0).apply(|s| s.append_action(k(Delete))),
 
-    switch CapsLock = Switch::new_with_width(0.0, 4.0, 1.75),
-    switch LOpt = Switch::new_with_width(1.75, 4.0, 1.25),
-    switch LCmd = Switch::new(3.0, 4.0),
-    switch Lower = Switch::new_with_width(4.0, 4.0, 1.25),
-    switch Space = Switch::new_with_width(5.25, 4.0, 6.25),
-    switch Raise = Switch::new_with_width(11.5, 4.0, 1.25),
-    switch RAlt = Switch::new_with_width(12.75, 4.0, 1.25),
-    switch App = Switch::new(14.0, 4.0),
-    switch Left = Switch::new(15.0, 4.0),
-    switch Down = Switch::new(16.0, 4.0),
-    switch Right = Switch::new(17.0, 4.0),
+    switch caps_lock = Switch::new_with_width(0.0, 4.0, 1.75).apply(|s| s.append_action(k(CapsLock))),
+    switch l_opt = Switch::new_with_width(1.75, 4.0, 1.25).apply(|s| s.append_action(k(LAlt))),
+    switch l_cmd = Switch::new(3.0, 4.0).apply(|s| s.append_action(k(LGui))),
+    switch lower = Switch::new_with_width(4.0, 4.0, 1.25).apply(|s| s.append_action(LOWER_EISU)),
+    switch space = Switch::new_with_width(5.25, 4.0, 6.25).apply(|s| s.append_action(k(Space))),
+    switch raise = Switch::new_with_width(11.5, 4.0, 1.25).apply(|s| s.append_action(SHIFT_KANA)),
+    switch r_alt = Switch::new_with_width(12.75, 4.0, 1.25).apply(|s| s.append_action(k(RAlt))),
+    switch app = Switch::new(14.0, 4.0).apply(|s| s.append_action(k(RGui))),
+    switch left = Switch::new(15.0, 4.0).apply(|s| s.append_action(k(Left))),
+    switch down = Switch::new(16.0, 4.0).apply(|s| s.append_action(k(Down))),
+    switch right = Switch::new(17.0, 4.0).apply(|s| s.append_action(k(Right))),
 );
 
+static mut SWITCH_POOL: Option<SwitchPool> = None;
 
 pub struct Layout {
-    switches: SwitchPool,
-    pub device0: TCA9555<'_, I2CError>,
-    pub device1: TCA9555<'_, I2CError>,
-    pub device2: TCA9555<'_, I2CError>,
-    pub device3: TCA9555<'_, I2CError>,
-    pub device4: TCA9555<'_, I2CError>
+    pub device0: TCA9555<I2CError>,
+    pub device1: TCA9555<I2CError>,
+    pub device2: TCA9555<I2CError>,
+    pub device3: TCA9555<I2CError>,
+    pub device4: TCA9555<I2CError>
 }
 
+static mut LAYOUT: Option<Layout> = None;
+
+const BASE: usize = 0;
 const LOWER: usize = 1;
 const RAISE: usize = 2;
 const FUNCS: usize = 3;
@@ -127,15 +129,17 @@ const FUNCS_TAB: Action = HoldTap {
 
 impl Layout {
 
-    pub fn new() -> Self {
-        Self {
-            switches: SwitchPool::new(),
-            device0: Self::dev0(),
-            device1: Self::dev1(),
-            device2: Self::dev2(),
-            device3: Self::dev3(),
-            device4: Self::dev4(),
-        }
+    pub unsafe fn new() -> Self {
+        SWITCH_POOL = Some(SwitchPool::new());
+        let switches = SWITCH_POOL.as_ref().unwrap();
+        let layout = Self {
+            device0: Self::dev0(switches),
+            device1: Self::dev1(switches),
+            device2: Self::dev2(switches),
+            device3: Self::dev3(switches),
+            device4: Self::dev4(switches),
+        };
+        layout
     }
 
     fn apply<F>(mut switch: Switch, mut f: F) -> Switch
@@ -146,110 +150,108 @@ impl Layout {
         switch
     }
 
-    fn dev0() -> TCA9555<I2CError> {
+    unsafe fn dev0(switches: &'static SwitchPool) -> TCA9555<I2CError> {
         let mut device = TCA9555::new(0x0, 200);
 
-        device.assign(0, Self::apply(SW_Escape, |s| s
-            .append_action(k(Escape))
-        ));
-        device.assign(1, Self::apply(SW_Kb1, |s| s.append_action(k(Kb1))));
-        device.assign(2, Self::apply(SW_Kb2, |s| s.append_action(k(Kb2))));
-        device.assign(3, Self::apply(SW_Kb3, |s| s.append_action(k(Kb3))));
-        device.assign(4, Self::apply(SW_Kb4, |s| s.append_action(k(Kb4))));
-        device.assign(5, Self::apply(SW_Kb5, |s| s.append_action(k(Kb5))));
-        device.assign(6, Self::apply(SW_Kb6, |s| s.append_action(k(Kb6))));
-        device.assign(7, Self::apply(SW_Kb7, |s| s.append_action(k(Kb7))));
-        device.assign(8, Self::apply(SW_Kb8, |s| s.append_action(k(Kb8))));
-        device.assign(9, Self::apply(SW_Kb9, |s| s.append_action(k(Kb9))));
-        device.assign(10, Self::apply(SW_Kb0, |s| s.append_action(k(Kb0))));
-        device.assign(11, Self::apply(SW_Minus, |s| s.append_action(k(Minus))));
-        device.assign(12, Self::apply(SW_Equal, |s| s.append_action(k(Equal))));
-        device.assign(13, Self::apply(SW_Bslash, |s| s.append_action(k(Bslash))));
-        device.assign(14, Self::apply(SW_Grave, |s| s.append_action(k(Grave))));
+        device.assign(0, &switches.escape);
+        device.assign(1, &switches.kb1);
+        device.assign(2, &switches.kb2);
+        device.assign(3, &switches.kb3);
+        device.assign(4, &switches.kb4);
+        device.assign(5, &switches.kb5);
+        device.assign(6, &switches.kb6);
+        device.assign(7, &switches.kb7);
+        device.assign(8, &switches.kb8);
+        device.assign(9, &switches.kb9);
+        device.assign(10, &switches.kb0);
+        device.assign(11, &switches.minus);
+        device.assign(12, &switches.equal);
+        device.assign(13, &switches.b_slash);
+        device.assign(14, &switches.grave);
 
         device
     }
 
-    fn dev1() -> TCA9555<I2CError> {
+    unsafe fn dev1(switches: &'static SwitchPool) -> TCA9555<I2CError> {
         let mut device = TCA9555::new(0x1, 200);
 
-        device.assign(0, Self::apply(SW_Tab, |s| s.append_action(FUNCS_TAB)));
-        device.assign(1, Self::apply(SW_Q, |s| s.append_action(k(Q))));
-        device.assign(2, Self::apply(SW_W, |s| s.append_action(k(W))));
-        device.assign(3, Self::apply(SW_E, |s| s.append_action(k(E))));
-        device.assign(4, Self::apply(SW_R, |s| s.append_action(k(R))));
-        device.assign(5, Self::apply(SW_T, |s| s.append_action(k(T))));
+        device.assign(0, &switches.tab);
+        device.assign(1, &switches.q);
+        device.assign(2, &switches.w);
+        device.assign(3, &switches.e);
+        device.assign(4, &switches.r);
+        device.assign(5, &switches.t);
 
-        device.assign(8, Self::apply(SW_LCtrl, |s| s.append_action(k(LCtrl))));
-        device.assign(9, Self::apply(SW_A, |s| s.append_action(k(A))));
-        device.assign(10, Self::apply(SW_S, |s| s.append_action(k(S))));
-        device.assign(11, Self::apply(SW_D, |s| s.append_action(k(D))));
-        device.assign(12, Self::apply(SW_F, |s| s.append_action(k(F))));
-        device.assign(13, Self::apply(SW_G, |s| s.append_action(k(G))));
+        device.assign(8, &switches.l_ctrl);
+        device.assign(9, &switches.a);
+        device.assign(10, &switches.s);
+        device.assign(11, &switches.d);
+        device.assign(12, &switches.f);
+        device.assign(13, &switches.g);
 
         device
     }
 
-    fn dev2() -> TCA9555<I2CError> {
+    unsafe fn dev2(switches: &'static SwitchPool) -> TCA9555<I2CError> {
         let mut device = TCA9555::new(0x2, 200);
 
-        device.assign(0, Self::apply(SW_Y, |s| s.append_action(k(Y))));
-        device.assign(1, Self::apply(SW_U, |s| s.append_action(k(U))));
-        device.assign(2, Self::apply(SW_I, |s| s.append_action(k(I))));
-        device.assign(3, Self::apply(SW_O, |s| s.append_action(k(O))));
-        device.assign(4, Self::apply(SW_P, |s| s.append_action(k(P))));
-        device.assign(5, Self::apply(SW_LBracket, |s| s.append_action(k(LBracket))));
-        device.assign(6, Self::apply(SW_RBracket, |s| s.append_action(k(RBracket))));
-        device.assign(7, Self::apply(SW_BSpace, |s| s.append_action(k(BSpace))));
+        device.assign(0, &switches.y);
+        device.assign(1, &switches.u);
+        device.assign(2, &switches.i);
+        device.assign(3, &switches.o);
+        device.assign(4, &switches.p);
+        device.assign(5, &switches.l_bracket);
+        device.assign(6, &switches.r_bracket);
+        device.assign(7, &switches.b_space);
 
-        device.assign(8, Self::apply(SW_H, |s| s.append_action(k(H))));
-        device.assign(9, Self::apply(SW_J, |s| s.append_action(k(J))));
-        device.assign(10, Self::apply(SW_K, |s| s.append_action(k(K))));
-        device.assign(11, Self::apply(SW_L, |s| s.append_action(k(L))));
-        device.assign(12, Self::apply(SW_SColon, |s| s.append_action(k(SColon))));
-        device.assign(13, Self::apply(SW_Quote, |s| s.append_action(k(Quote))));
-        device.assign(14, Self::apply(SW_Enter, |s| s.append_action(k(Enter))));
+        device.assign(8, &switches.h);
+        device.assign(9, &switches.j);
+        device.assign(10, &switches.k);
+        device.assign(11, &switches.l);
+        device.assign(12, &switches.s_colon);
+        device.assign(13, &switches.quote);
+        device.assign(14, &switches.enter);
 
         device
     }
 
-    fn dev3() -> TCA9555<I2CError> {
+    unsafe fn dev3(switches: &'static SwitchPool) -> TCA9555<I2CError> {
         let mut device = TCA9555::new(0x3, 200);
 
-        device.assign(0, Self::apply(SW_LShift, |s| s.append_action(k(LShift))));
-        device.assign(1, Self::apply(SW_Z, |s| s.append_action(k(Z))));
-        device.assign(2, Self::apply(SW_X, |s| s.append_action(k(X))));
-        device.assign(3, Self::apply(SW_C, |s| s.append_action(k(C))));
-        device.assign(4, Self::apply(SW_V, |s| s.append_action(k(V))));
-        device.assign(5, Self::apply(SW_B, |s| s.append_action(k(B))));
+        device.assign(0, &switches.l_shift);
+        device.assign(1, &switches.z);
+        device.assign(2, &switches.x);
+        device.assign(3, &switches.c);
+        device.assign(4, &switches.v);
+        device.assign(5, &switches.b);
 
-        device.assign(8, Self::apply(SW_CapsLock, |s| s.append_action(k(CapsLock))));
-        device.assign(9, Self::apply(SW_LOpt, |s| s.append_action(k(LAlt))));
-        device.assign(10, Self::apply(SW_LCmd, |s| s.append_action(k(LGui))));
-        device.assign(11, Self::apply(SW_Lower, |s| s.append_action(LOWER_EISU)));
-        device.assign(12, Self::apply(SW_Space, |s| s.append_action(k(Space))));
-        device.assign(13, Self::apply(SW_Raise, |s| s.append_action(SHIFT_KANA)));
+        device.assign(8, &switches.caps_lock);
+        device.assign(9, &switches.l_opt);
+        device.assign(10, &switches.l_cmd);
+        device.assign(11, &switches.lower);
+        device.assign(12, &switches.space);
+        device.assign(13, &switches.raise);
 
         device
     }
 
-    fn dev4() -> TCA9555<I2CError> {
+    unsafe fn dev4(switches: &'static SwitchPool) -> TCA9555<I2CError> {
         let mut device = TCA9555::new(0x4, 200);
 
-        device.assign(0, Self::apply(SW_N, |s| s.append_action(k(N))));
-        device.assign(1, Self::apply(SW_M, |s| s.append_action(k(M))));
-        device.assign(2, Self::apply(SW_Comma, |s| s.append_action(k(Comma))));
-        device.assign(3, Self::apply(SW_Dot, |s| s.append_action(k(Dot))));
-        device.assign(4, Self::apply(SW_Slash, |s| s.append_action(k(Slash))));
-        device.assign(5, Self::apply(SW_RShift, |s| s.append_action(k(RShift))));
-        device.assign(6, Self::apply(SW_Up, |s| s.append_action(k(Up))));
-        device.assign(7, Self::apply(SW_Delete, |s| s.append_action(k(Delete))));
+        device.assign(0, &switches.n);
+        device.assign(1, &switches.m);
+        device.assign(2, &switches.comma);
+        device.assign(3, &switches.dot);
+        device.assign(4, &switches.slash);
+        device.assign(5, &switches.r_shift);
+        device.assign(6, &switches.up);
+        device.assign(7, &switches.delete);
 
-        device.assign(8, Self::apply(SW_RAlt, |s| s.append_action(l(RAISE))));
-        device.assign(9, Self::apply(SW_App, |s| s.append_action(l(RAISE))));
-        device.assign(10, Self::apply(SW_Left, |s| s.append_action(k(Left))));
-        device.assign(11, Self::apply(SW_Down, |s| s.append_action(k(Down))));
-        device.assign(12, Self::apply(SW_Right, |s| s.append_action(k(Right))));
+        device.assign(8, &switches.r_alt);
+        device.assign(9, &switches.app);
+        device.assign(10, &switches.left);
+        device.assign(11, &switches.down);
+        device.assign(12, &switches.right);
 
         device
     }
