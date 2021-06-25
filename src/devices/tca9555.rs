@@ -2,7 +2,6 @@
 // All right reserved.
 //
 
-use crate::i2c::I2C;
 use crate::switch::Switch;
 use crate::debouncer::{Debouncer};
 use crate::device::{Device, DeviceState};
@@ -14,38 +13,45 @@ use crate::device::DeviceState::Pins16;
 use crate::event::IndexEvent::{PressedAt, ReleasedAt};
 use crate::event::KeyEvent::{Pressed, Released};
 use core::marker::PhantomData;
+use embedded_hal::blocking::i2c::{Write, WriteRead};
 
 /// TCA9555
 /// PCA9555も同じ
-pub struct TCA9555<E> {
+pub struct TCA9555<I2C, E> {
     dev_addr: u8,
     debouncer: RefCell<Debouncer<U16>>,
     switches: Vec<&'static Switch, U16>,
-    phantom: PhantomData<E>
+    phantom0: PhantomData<I2C>,
+    phantom1: PhantomData<E>
 }
 
-impl<E> TCA9555<E> {
+impl<I2C, E> TCA9555<I2C, E> {
 
     pub fn new(addr: u8, debounce: u16) -> Self {
         Self {
             dev_addr: 0x20_u8 + addr,
             debouncer: RefCell::new(Debouncer::new(debounce)),
             switches: Vec::default(),
-            phantom: Default::default()
+            phantom0: Default::default(),
+            phantom1: Default::default()
         }
     }
 }
 
 /// I2Cの実装がMCU（チップセット）毎にバラバラなので、エラーの型をジェネリクスのパラメータで渡す形になってしまう
-impl<E> Device<E> for TCA9555<E> {
+impl<I2C, E> Device<I2C, E> for TCA9555<I2C, E>
+    where
+        I2C: Write<Error = E>,
+        I2C: WriteRead<Error = E>
+{
 
-    fn init_device(&self, i2c: &mut dyn I2C<E>) -> Result<(), E> {
+    fn init_device(&self, i2c: &mut I2C) -> Result<(), E> {
         // All input
         i2c.write(self.dev_addr, &[0x06_u8, 0xFF_u8])?;
         i2c.write(self.dev_addr, &[0x07_u8, 0xFF_u8])
     }
 
-    fn read_device(&self, i2c: &mut dyn I2C<E>) -> Result<DeviceState, E> {
+    fn read_device(&self, i2c: &mut I2C) -> Result<DeviceState, E> {
         let reg_addr = &[0x00_u8];
         let data = &mut [0x00_u8, 0x00_u8];
         i2c.write_read(self.dev_addr, reg_addr, data)?;

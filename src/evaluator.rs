@@ -15,28 +15,25 @@ use heapless::consts::U64;
 use arraydeque::{ArrayDeque, Wrapping};
 use KeyState::*;
 
-
 pub struct Evaluator {
     default_layer: usize,
     states: Vec<KeyState, U64>,
     waiting: Option<WaitingState>,
-    stacked: ArrayDeque<[Stacked; 16], Wrapping>,
-    reporter: &'static dyn Reporter
+    stacked: ArrayDeque<[Stacked; 16], Wrapping>
 }
 
 impl Evaluator {
 
-    pub fn new(reporter: &'static dyn Reporter) -> Self {
+    pub fn new() -> Self {
         Self {
             default_layer: 0,
             states: Vec::new(),
             waiting: None,
-            stacked: ArrayDeque::new(),
-            reporter
+            stacked: ArrayDeque::new()
         }
     }
 
-    pub fn eval(&mut self, event: KeyEvent)  {
+    pub fn eval(&mut self, event: KeyEvent, reporter: &mut dyn Reporter)  {
         if let Some(stacked) = self.stacked.push_back(event.into()) {
             self.waiting_into_hold();
             self.unstack(stacked);
@@ -49,10 +46,10 @@ impl Evaluator {
         {
             self.waiting_into_tap();
         }
-        self.reporter.send_codes(&self.keycodes()[..]);
+        reporter.send_codes(&self.keycodes()[..]);
     }
 
-    pub fn tick(&mut self) {
+    pub fn tick(&mut self, reporter: &mut dyn Reporter) {
         self.states = self.states.iter().filter_map(KeyState::tick).collect();
         self.stacked.iter_mut().for_each(Stacked::tick);
         match &mut self.waiting {
@@ -67,7 +64,7 @@ impl Evaluator {
                 }
             }
         }
-        self.reporter.send_codes(&self.keycodes()[..]);
+        reporter.send_codes(&self.keycodes()[..]);
     }
 
     fn keycodes(&self) -> Vec<KeyCode, U64> {

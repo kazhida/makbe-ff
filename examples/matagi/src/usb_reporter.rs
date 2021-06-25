@@ -1,26 +1,26 @@
+
 use keyberon::key_code::{KeyCode, KbHidReport};
-use usb_device::device::UsbDevice;
-use usbd_serial::SerialPort;
 use makbe_ff::reporter::Reporter;
 use xiao_m0::UsbBus;
+use usb_device::device::UsbDevice;
+use keyberon::Class;
+use keyberon::keyboard::Leds;
 
 
-pub struct UsbReporter {
-    usb_bus: &'static mut UsbDevice<'static, UsbBus>,
-    usb_serial: &'static mut SerialPort<'static, UsbBus>
+pub struct UsbReporter<'a, L: Leds> {
+    usb_class: Class<'a, UsbBus, L>,
+    usb_dev: UsbDevice<'a, UsbBus>
 }
 
-impl Reporter for UsbReporter {
 
-    fn send_codes(&self, codes: &[KeyCode]) {
-        self.usb_bus.poll(&mut [self.serial]);
-        let report: KbHidReport = codes.collect();
-        loop {
-            if let Some(count) = self.usb_serial.write(report.as_bytes()) {
-                if count == 0_usize {
-                    break;
-                }
-            }
+
+
+impl<L: Leds> Reporter for UsbReporter<'_, L> {
+
+    fn send_codes(&mut self, codes: &[KeyCode]) {
+        let report: KbHidReport = codes.iter().collect();
+        if self.usb_class.device_mut().set_keyboard_report(report.clone()) {
+            while let Ok(0) = self.usb_class.write(report.as_bytes()) {}
         }
     }
 }

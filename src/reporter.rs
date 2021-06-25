@@ -4,6 +4,7 @@
 
 use keyberon::key_code::KeyCode;
 
+
 pub trait Reporter {
-    fn send_codes(&self, codes: &[KeyCode]);
+    fn send_codes(&mut self, codes: &[KeyCode]);
 }

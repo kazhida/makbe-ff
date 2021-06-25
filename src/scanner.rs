@@ -3,30 +3,36 @@
 //
 
 use crate::device::DeviceHolder;
-use crate::i2c::I2C;
 use crate::device::DeviceState::{Pins16, Pins8};
 use crate::evaluator::Evaluator;
 use core::ops::Deref;
 use core::marker::PhantomData;
+use embedded_hal::blocking::i2c::{Write, WriteRead};
+use crate::reporter::Reporter;
 
 /// deviceを使用して、キーの状態をスキャンするもの
-pub struct Scanner<E> {
+pub struct Scanner<I2C, E> {
     evaluator: Evaluator,
-    phantom: PhantomData<E>
+    phantom0: PhantomData<I2C>,
+    phantom1: PhantomData<E>
 }
 
-impl <E> Scanner<E>
+impl <I2C, E> Scanner<I2C, E>
+    where
+        I2C: Write<Error = E>,
+        I2C: WriteRead<Error = E>
 {
 
     pub fn new(evaluator: Evaluator<>) -> Self {
         Self {
             evaluator,
-            phantom: Default::default()
+            phantom0: Default::default(),
+            phantom1: Default::default()
         }
     }
 
     /// キー・イベントの収拾
-    pub fn scan(&mut self, i2c: &mut dyn I2C<E>, holder: &DeviceHolder<E>) {
+    pub fn scan(&mut self, i2c: &mut I2C, holder: &DeviceHolder<I2C, E>, reporter: &mut dyn Reporter) {
         // デバイス毎にイベント取得
         for d in holder.devices.deref() {
             let device = d.deref();
@@ -37,13 +43,13 @@ impl <E> Scanner<E>
                         // 16ビットのI/Oエクスパンダ
                         Pins16(pins) => {
                             for e in device.pick_events(&pins).buffer {
-                                self.evaluator.eval(e.clone());
+                                self.evaluator.eval(e.clone(), reporter);
                             }
                         }
                         // 8ビットのI/Oエクスパンダ
                         Pins8(pins) => {
                             for e in device.pick_events(&pins).buffer {
-                                self.evaluator.eval(e.clone());
+                                self.evaluator.eval(e.clone(), reporter);
                             }
                         }
                         // その他のデバイス

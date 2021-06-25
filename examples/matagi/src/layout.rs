@@ -12,8 +12,8 @@ use makbe_ff::devices::tca9555::TCA9555;
 use keyberon::key_code::KeyCode::*;
 use keyberon::action::{k, l, Action};
 use keyberon::action::Action::HoldTap;
-use xiao_m0::sercom::I2CError;
-use makbe_ff::i2c::I2C;
+use xiao_m0::sercom::{I2CError, I2CMaster2, Sercom2Pad0, Sercom2Pad1};
+use xiao_m0::gpio::{Pa8, Pa9, PfD};
 
 
 const BASE: usize = 0;
@@ -116,20 +116,22 @@ switch_pool!(
     switch right = Switch::new(17.0, 4.0).apply(|s| s.append_action(k(Right))),
 );
 
+type I2CMaster = I2CMaster2<Sercom2Pad0<Pa8<PfD>>, Sercom2Pad1<Pa9<PfD>>>;
+
 static mut SWITCH_POOL: Option<SwitchPool> = None;
-static mut DEVICE0: Option<TCA9555<I2CError>> = None;
-static mut DEVICE1: Option<TCA9555<I2CError>> = None;
-static mut DEVICE2: Option<TCA9555<I2CError>> = None;
-static mut DEVICE3: Option<TCA9555<I2CError>> = None;
-static mut DEVICE4: Option<TCA9555<I2CError>> = None;
+static mut DEVICE0: Option<TCA9555<I2CMaster, I2CError>> = None;
+static mut DEVICE1: Option<TCA9555<I2CMaster, I2CError>> = None;
+static mut DEVICE2: Option<TCA9555<I2CMaster, I2CError>> = None;
+static mut DEVICE3: Option<TCA9555<I2CMaster, I2CError>> = None;
+static mut DEVICE4: Option<TCA9555<I2CMaster, I2CError>> = None;
 
 
 pub struct Layout {
-    pub device0: &'static TCA9555<I2CError>,
-    pub device1: &'static TCA9555<I2CError>,
-    pub device2: &'static TCA9555<I2CError>,
-    pub device3: &'static TCA9555<I2CError>,
-    pub device4: &'static TCA9555<I2CError>
+    pub device0: &'static TCA9555<I2CMaster, I2CError>,
+    pub device1: &'static TCA9555<I2CMaster, I2CError>,
+    pub device2: &'static TCA9555<I2CMaster, I2CError>,
+    pub device3: &'static TCA9555<I2CMaster, I2CError>,
+    pub device4: &'static TCA9555<I2CMaster, I2CError>
 }
 
 static mut LAYOUT: Option<Layout> = None;
@@ -164,7 +166,7 @@ impl Layout {
         switch
     }
 
-    unsafe fn dev0(switches: &'static SwitchPool) -> TCA9555<I2CError> {
+    unsafe fn dev0(switches: &'static SwitchPool) -> TCA9555<I2CMaster, I2CError> {
         let mut device = TCA9555::new(0x0, 200);
 
         device.assign(0, &switches.escape);
@@ -186,7 +188,7 @@ impl Layout {
         device
     }
 
-    unsafe fn dev1(switches: &'static SwitchPool) -> TCA9555<I2CError> {
+    unsafe fn dev1(switches: &'static SwitchPool) -> TCA9555<I2CMaster, I2CError> {
         let mut device = TCA9555::new(0x1, 200);
 
         device.assign(0, &switches.tab);
@@ -206,7 +208,7 @@ impl Layout {
         device
     }
 
-    unsafe fn dev2(switches: &'static SwitchPool) -> TCA9555<I2CError> {
+    unsafe fn dev2(switches: &'static SwitchPool) -> TCA9555<I2CMaster, I2CError> {
         let mut device = TCA9555::new(0x2, 200);
 
         device.assign(0, &switches.y);
@@ -229,7 +231,7 @@ impl Layout {
         device
     }
 
-    unsafe fn dev3(switches: &'static SwitchPool) -> TCA9555<I2CError> {
+    unsafe fn dev3(switches: &'static SwitchPool) -> TCA9555<I2CMaster, I2CError> {
         let mut device = TCA9555::new(0x3, 200);
 
         device.assign(0, &switches.l_shift);
@@ -249,7 +251,7 @@ impl Layout {
         device
     }
 
-    unsafe fn dev4(switches: &'static SwitchPool) -> TCA9555<I2CError> {
+    unsafe fn dev4(switches: &'static SwitchPool) -> TCA9555<I2CMaster, I2CError> {
         let mut device = TCA9555::new(0x4, 200);
 
         device.assign(0, &switches.n);
@@ -270,7 +272,7 @@ impl Layout {
         device
     }
 
-    pub fn init_devices(&mut self, i2c: &mut dyn I2C<I2CError>) {
+    pub fn init_devices(&mut self, i2c: &mut I2CMaster2<Sercom2Pad0<Pa8<PfD>>, Sercom2Pad1<Pa9<PfD>>>) {
         self.device0.init_device(i2c);
         self.device1.init_device(i2c);
         self.device2.init_device(i2c);
@@ -278,7 +280,7 @@ impl Layout {
         self.device4.init_device(i2c);
     }
 
-    pub fn device_holder(&self) -> DeviceHolder<I2CError> {
+    pub fn device_holder(&self) -> DeviceHolder<I2CMaster, I2CError> {
         let mut holder = DeviceHolder::new();
 
         unsafe {
