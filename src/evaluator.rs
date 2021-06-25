@@ -9,13 +9,12 @@ use keyberon::key_code::KeyCode;
 use crate::event::KeyEvent;
 use crate::event::KeyEvent::{Released, Pressed};
 use crate::switch::Switch;
+use crate::reporter::Reporter;
 use heapless::Vec;
 use heapless::consts::U64;
 use arraydeque::{ArrayDeque, Wrapping};
-
 use KeyState::*;
-use crate::reporter::Reporter;
-use keyberon::key_code;
+
 
 pub struct Evaluator {
     default_layer: usize,
@@ -74,7 +73,7 @@ impl Evaluator {
     fn keycodes(&self) -> Vec<KeyCode, U64> {
         let mut codes: Vec<KeyCode, U64> = Vec::new();
         for kc in self.states.iter().filter_map(KeyState::keycode) {
-            codes.push(kc);
+            let _ = codes.push(kc);
         }
         codes
     }

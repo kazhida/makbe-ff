@@ -10,12 +10,12 @@ use core::ops::Deref;
 use core::marker::PhantomData;
 
 /// deviceを使用して、キーの状態をスキャンするもの
-pub struct Scanner<I2cError> {
+pub struct Scanner<E> {
     evaluator: Evaluator,
-    phantom: PhantomData<I2cError>
+    phantom: PhantomData<E>
 }
 
-impl <I2cError> Scanner<I2cError>
+impl <E> Scanner<E>
 {
 
     pub fn new(evaluator: Evaluator<>) -> Self {
@@ -26,7 +26,7 @@ impl <I2cError> Scanner<I2cError>
     }
 
     /// キー・イベントの収拾
-    pub fn scan(&mut self, i2c: &mut dyn I2C<I2cError>, holder: &DeviceHolder<I2cError>) {
+    pub fn scan(&mut self, i2c: &mut dyn I2C<E>, holder: &DeviceHolder<E>) {
         // デバイス毎にイベント取得
         for d in holder.devices.deref() {
             let device = d.deref();

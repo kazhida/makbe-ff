@@ -2,10 +2,11 @@
 #![no_std]
 
 mod layout;
+mod usb_reporter;
 
 const VENDOR_ID:  u16 = 0xFEED;
 const PRODUCT_ID: u16 = 0x0000;
-const DEVICE_VER: &str = "0x0001";
+const SERIAL_NUMBER: &str = "0x0001";
 const MANUFACTURER: &str = "ABplus Inc. kazhida";
 const PRODUCT: &str = "Matagi(xiao)";
 
@@ -20,38 +21,14 @@ use xiao_m0::hal::usb::UsbBus;
 use usb_device::bus::UsbBusAllocator;
 use usb_device::prelude::*;
 use usbd_serial::{SerialPort, USB_CLASS_CDC};
+use makbe_ff::evaluator::Evaluator;
+use crate::usb_reporter::UsbReporter;
+use makbe_ff::scanner::Scanner;
+use crate::layout::Layout;
 
 static mut USB_ALLOCATOR: Option<UsbBusAllocator<UsbBus>> = None;
 static mut USB_BUS: Option<UsbDevice<UsbBus>> = None;
 static mut USB_SERIAL: Option<SerialPort<UsbBus>> = None;
-
-fn poll_usb() {
-    unsafe {
-        USB_BUS.as_mut().map(|usb_dev| {
-            USB_SERIAL.as_mut().map(|serial| {
-                usb_dev.poll(&mut [serial]);
-                let mut buf = [0u8; 64];
-
-                if let Ok(count) = serial.read(&mut buf) {
-                    for (i, c) in buf.iter().enumerate() {
-                        if i >= count {
-                            break;
-                        }
-                        serial.write(&[c.clone()]).unwrap();
-                        // LED.as_mut().map(|led| led.toggle());
-                    }
-                };
-            });
-        });
-    };
-}
-
-
-
-// #[interrupt]
-// fn USB() {
-//     poll_usb();
-// }
 
 #[entry]
 fn main() -> ! {
@@ -65,6 +42,7 @@ fn main() -> ! {
     );
     let mut pins = xiao_m0::Pins::new(peripherals.PORT);
 
+
     let bus_allocator = unsafe {
         USB_ALLOCATOR = Some(xiao_m0::usb_allocator(
             peripherals.USB,
@@ -77,17 +55,22 @@ fn main() -> ! {
         USB_ALLOCATOR.as_ref().unwrap()
     };
 
-    unsafe {
+    let usb_serial = unsafe {
         USB_SERIAL = Some(SerialPort::new(&bus_allocator));
+        USB_SERIAL.as_mut().unwrap()
+    };
+
+    let usb_bus = unsafe {
         USB_BUS = Some(
             UsbDeviceBuilder::new(&bus_allocator, UsbVidPid(VENDOR_ID, PRODUCT_ID))
                 .manufacturer(MANUFACTURER)
                 .product(PRODUCT)
-                .serial_number(DEVICE_VER)
+                .serial_number(SERIAL_NUMBER)
                 .device_class(USB_CLASS_CDC)
                 .build(),
         );
-    }
+        USB_BUS.as_mut().unwrap()
+    };
 
     unsafe {
         core.NVIC.set_priority(interrupt::USB, 1);
@@ -104,11 +87,20 @@ fn main() -> ! {
         &mut pins.port
     );
 
+    let mut layout = Layout::new();
 
+    let reporter = UsbReporter{
+        usb_bus,
+        usb_serial
+    };
 
+    let evaluator = Evaluator::new(&reporter);
+    let mut scanner = Scanner::new(evaluator);
 
+    layout.init_devices(&mut i2c);
+
+    let device_holder = layout.device_holder();
     loop {
-
-        // todo
+        scanner.scan(&mut i2c, &device_holder)
     }
 }

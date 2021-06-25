@@ -7,13 +7,38 @@ extern crate paste;
 
 use makbe_ff::switch::Switch;
 use makbe_ff::switch_pool;
-use makbe_ff::device::Device;
+use makbe_ff::device::{Device, DeviceHolder};
 use makbe_ff::devices::tca9555::TCA9555;
 use keyberon::key_code::KeyCode::*;
 use keyberon::action::{k, l, Action};
 use keyberon::action::Action::HoldTap;
 use xiao_m0::sercom::I2CError;
+use makbe_ff::i2c::I2C;
 
+
+const BASE: usize = 0;
+const LOWER: usize = 1;
+const RAISE: usize = 2;
+const FUNCS: usize = 3;
+
+
+const LOWER_EISU: Action = HoldTap {
+    timeout: 200,
+    hold: &l(LOWER),
+    tap: &k(Lang2),
+};
+
+const SHIFT_KANA: Action = HoldTap {
+    timeout: 200,
+    hold: &k(RShift),
+    tap: &k(Lang1),
+};
+
+const FUNCS_TAB: Action = HoldTap {
+    timeout: 200,
+    hold: &l(FUNCS),
+    tap: &k(Tab),
+};
 
 switch_pool!(
     struct SwitchPool,
@@ -92,54 +117,43 @@ switch_pool!(
 );
 
 static mut SWITCH_POOL: Option<SwitchPool> = None;
+static mut DEVICE0: Option<TCA9555<I2CError>> = None;
+static mut DEVICE1: Option<TCA9555<I2CError>> = None;
+static mut DEVICE2: Option<TCA9555<I2CError>> = None;
+static mut DEVICE3: Option<TCA9555<I2CError>> = None;
+static mut DEVICE4: Option<TCA9555<I2CError>> = None;
+
 
 pub struct Layout {
-    pub device0: TCA9555<I2CError>,
-    pub device1: TCA9555<I2CError>,
-    pub device2: TCA9555<I2CError>,
-    pub device3: TCA9555<I2CError>,
-    pub device4: TCA9555<I2CError>
+    pub device0: &'static TCA9555<I2CError>,
+    pub device1: &'static TCA9555<I2CError>,
+    pub device2: &'static TCA9555<I2CError>,
+    pub device3: &'static TCA9555<I2CError>,
+    pub device4: &'static TCA9555<I2CError>
 }
 
 static mut LAYOUT: Option<Layout> = None;
 
-const BASE: usize = 0;
-const LOWER: usize = 1;
-const RAISE: usize = 2;
-const FUNCS: usize = 3;
-
-
-const LOWER_EISU: Action = HoldTap {
-    timeout: 200,
-    hold: &l(LOWER),
-    tap: &k(Lang2),
-};
-
-const SHIFT_KANA: Action = HoldTap {
-    timeout: 200,
-    hold: &k(RShift),
-    tap: &k(Lang1),
-};
-
-const FUNCS_TAB: Action = HoldTap {
-    timeout: 200,
-    hold: &l(FUNCS),
-    tap: &k(Tab),
-};
-
 impl Layout {
 
-    pub unsafe fn new() -> Self {
-        SWITCH_POOL = Some(SwitchPool::new());
-        let switches = SWITCH_POOL.as_ref().unwrap();
-        let layout = Self {
-            device0: Self::dev0(switches),
-            device1: Self::dev1(switches),
-            device2: Self::dev2(switches),
-            device3: Self::dev3(switches),
-            device4: Self::dev4(switches),
-        };
-        layout
+    pub fn new() -> Self {
+        unsafe {
+            SWITCH_POOL = Some(SwitchPool::new());
+            let switches = SWITCH_POOL.as_ref().unwrap();
+            DEVICE0 = Some(Self::dev0(switches));
+            DEVICE1 = Some(Self::dev1(switches));
+            DEVICE2 = Some(Self::dev2(switches));
+            DEVICE3 = Some(Self::dev3(switches));
+            DEVICE4 = Some(Self::dev4(switches));
+            let layout = Self {
+                device0: DEVICE0.as_ref().unwrap(),
+                device1: DEVICE1.as_ref().unwrap(),
+                device2: DEVICE2.as_ref().unwrap(),
+                device3: DEVICE3.as_ref().unwrap(),
+                device4: DEVICE4.as_ref().unwrap()
+            };
+            layout
+        }
     }
 
     fn apply<F>(mut switch: Switch, mut f: F) -> Switch
@@ -254,5 +268,27 @@ impl Layout {
         device.assign(12, &switches.right);
 
         device
+    }
+
+    pub fn init_devices(&mut self, i2c: &mut dyn I2C<I2CError>) {
+        self.device0.init_device(i2c);
+        self.device1.init_device(i2c);
+        self.device2.init_device(i2c);
+        self.device3.init_device(i2c);
+        self.device4.init_device(i2c);
+    }
+
+    pub fn device_holder(&self) -> DeviceHolder<I2CError> {
+        let mut holder = DeviceHolder::new();
+
+        unsafe {
+            holder.devices.push(DEVICE0.as_ref().unwrap());
+            holder.devices.push(DEVICE1.as_ref().unwrap());
+            holder.devices.push(DEVICE2.as_ref().unwrap());
+            holder.devices.push(DEVICE3.as_ref().unwrap());
+            holder.devices.push(DEVICE4.as_ref().unwrap());
+        }
+
+        holder
     }
 }

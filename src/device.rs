@@ -28,17 +28,17 @@ pub enum DeviceState {
 }
 
 /// デバイスの機能
-pub trait Device<I2cError>
+pub trait Device<E>
 {
     /// # デバイスの初期化
     ///
     /// I/Oエクスパンダ上のピンの設定とか
-    fn init_device(&self, i2c: &mut dyn I2C<I2cError>) -> Result<(), I2cError>;
+    fn init_device(&self, i2c: &mut dyn I2C<E>) -> Result<(), E>;
 
     /// # 読込
     ///
     /// 返値はそのデバイスの状態
-    fn read_device(&self, i2c: &mut dyn I2C<I2cError>) -> Result<DeviceState, I2cError>;
+    fn read_device(&self, i2c: &mut dyn I2C<E>) -> Result<DeviceState, E>;
 
     /// # キーの割付
     fn assign(&mut self, pin: usize, switch: &'static Switch) -> Result<usize, usize>;
@@ -50,6 +50,15 @@ pub trait Device<I2cError>
     fn pick_events(&self, pins: &[bool]) -> EventBuffer;
 }
 
-pub struct DeviceHolder<I2cError: 'static> {
-    pub devices: Vec<&'static dyn Device<I2cError>, U128>
+pub struct DeviceHolder<E: 'static> {
+    pub devices: Vec<&'static dyn Device<E>, U128>
+}
+
+impl<E: 'static> DeviceHolder<E> {
+
+    pub fn new() -> Self {
+        Self {
+            devices: Vec::new()
+        }
+    }
 }
