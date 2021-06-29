@@ -18,20 +18,17 @@ use xiao_m0::pac::{NVIC, interrupt, Peripherals, CorePeripherals};
 use xiao_m0::clock::GenericClockController;
 use xiao_m0::hal::common::time::KiloHertz;
 use xiao_m0::hal::usb::UsbBus;
-use usb_device::bus::UsbBusAllocator;
-use usb_device::prelude::*;
-use usbd_serial::{SerialPort, USB_CLASS_CDC};
-use makbe_ff::evaluator::Evaluator;
-use crate::usb_reporter::UsbReporter;
-use makbe_ff::scanner::Scanner;
-use crate::layout::Layout;
 use xiao_m0::hal::common::sercom::{I2CMaster2, Sercom2Pad0, Sercom2Pad1};
 use xiao_m0::gpio::{PfD, Pa8, Pa9};
+use usb_device::bus::UsbBusAllocator;
+use usb_device::prelude::*;
+use makbe_ff::evaluator::Evaluator;
+use makbe_ff::scanner::Scanner;
+use crate::layout::Layout;
+use crate::usb_reporter::UsbReporter;
 use keyberon::keyboard::Leds;
 
 static mut USB_ALLOCATOR: Option<UsbBusAllocator<UsbBus>> = None;
-static mut USB_BUS: Option<UsbDevice<UsbBus>> = None;
-static mut USB_SERIAL: Option<SerialPort<UsbBus>> = None;
 
 struct NoLeds {}
 
@@ -63,23 +60,6 @@ fn main() -> ! {
         USB_ALLOCATOR.as_ref().unwrap()
     };
 
-    let usb_serial = unsafe {
-        USB_SERIAL = Some(SerialPort::new(&bus_allocator));
-        USB_SERIAL.as_mut().unwrap()
-    };
-
-    let usb_bus = unsafe {
-        USB_BUS = Some(
-            UsbDeviceBuilder::new(&bus_allocator, UsbVidPid(VENDOR_ID, PRODUCT_ID))
-                .manufacturer(MANUFACTURER)
-                .product(PRODUCT)
-                .serial_number(SERIAL_NUMBER)
-                .device_class(USB_CLASS_CDC)
-                .build(),
-        );
-        USB_BUS.as_mut().unwrap()
-    };
-
     unsafe {
         core.NVIC.set_priority(interrupt::USB, 1);
         NVIC::unmask(interrupt::USB);
@@ -98,7 +78,7 @@ fn main() -> ! {
     let mut layout = Layout::new();
 
     let leds = NoLeds{};
-    let reporter = UsbReporter {
+    let mut reporter = UsbReporter {
         usb_class: keyberon::new_class(bus_allocator, leds),
         usb_dev: UsbDeviceBuilder::new(bus_allocator, UsbVidPid(VENDOR_ID, PRODUCT_ID))
             .manufacturer(MANUFACTURER)
