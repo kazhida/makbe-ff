@@ -13,14 +13,11 @@ const PRODUCT: &str = "Matagi(xiao)";
 extern crate panic_halt;
 extern crate xiao_m0;
 
-use xiao_m0::{entry, i2c_master};
+use xiao_m0::{entry, i2c_master, uart};
 use xiao_m0::pac::{NVIC, interrupt, Peripherals, CorePeripherals};
 use xiao_m0::clock::GenericClockController;
-use xiao_m0::hal::common::time::KiloHertz;
-use xiao_m0::hal::usb::UsbBus;
 use xiao_m0::hal::common::sercom::{I2CMaster2, Sercom2Pad0, Sercom2Pad1};
 use xiao_m0::gpio::{PfD, Pa8, Pa9};
-use usb_device::bus::UsbBusAllocator;
 use usb_device::prelude::*;
 use makbe_ff::evaluator::Evaluator;
 use makbe_ff::scanner::Scanner;
@@ -28,6 +25,7 @@ use crate::layout::Layout;
 use crate::usb_reporter::UsbReporter;
 use keyberon::keyboard::Leds;
 use xiao_m0::time::U32Ext;
+use xiao_m0::prelude::*;
 
 struct NoLeds {}
 
@@ -45,7 +43,6 @@ fn main() -> ! {
         &mut peripherals.NVMCTRL,
     );
     let mut pins = xiao_m0::Pins::new(peripherals.PORT);
-    let mut sets = pins.split();
 
     let bus_allocator = xiao_m0::usb_allocator(
         peripherals.USB,
@@ -63,7 +60,7 @@ fn main() -> ! {
 
     let mut i2c: I2CMaster2<Sercom2Pad0<Pa8<PfD>>, Sercom2Pad1<Pa9<PfD>>> = i2c_master(
         &mut clocks,
-        KiloHertz(400),
+        400.khz(),
         peripherals.SERCOM2,
         &mut peripherals.PM,
         pins.a4,
@@ -71,13 +68,19 @@ fn main() -> ! {
         &mut pins.port
     );
 
-    let mut serial = sets.uart.init(
+    let mut uart = uart(
         &mut clocks,
         115200.hz(),
-        peripherals.SERCOM3,
-        &mut peripherals.MCLK,
+        peripherals.SERCOM4,
+        &mut peripherals.PM,
+        pins.a7,
+        pins.a6,
         &mut pins.port
     );
+
+    for c in b"start, world\n".iter() {
+        nb::block!(uart.write(*c)).unwrap();
+    }
 
     let mut layout = Layout::new();
 
@@ -99,9 +102,8 @@ fn main() -> ! {
     let device_holder = layout.device_holder();
     loop {
         scanner.scan(&mut i2c, &device_holder, &mut reporter);
-
         for c in b"hello, world\n".iter() {
-            nb::block!(serial.write(*c)).unwrap();
+            nb::block!(uart.write(*c)).unwrap();
         }
     }
 }
