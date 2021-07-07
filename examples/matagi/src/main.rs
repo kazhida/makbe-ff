@@ -27,8 +27,7 @@ use makbe_ff::scanner::Scanner;
 use crate::layout::Layout;
 use crate::usb_reporter::UsbReporter;
 use keyberon::keyboard::Leds;
-
-static mut USB_ALLOCATOR: Option<UsbBusAllocator<UsbBus>> = None;
+use xiao_m0::time::U32Ext;
 
 struct NoLeds {}
 
@@ -46,19 +45,16 @@ fn main() -> ! {
         &mut peripherals.NVMCTRL,
     );
     let mut pins = xiao_m0::Pins::new(peripherals.PORT);
+    let mut sets = pins.split();
 
-
-    let bus_allocator = unsafe {
-        USB_ALLOCATOR = Some(xiao_m0::usb_allocator(
-            peripherals.USB,
-            &mut clocks,
-            &mut peripherals.PM,
-            pins.usb_dm,
-            pins.usb_dp,
-            &mut pins.port
-        ));
-        USB_ALLOCATOR.as_ref().unwrap()
-    };
+    let bus_allocator = xiao_m0::usb_allocator(
+        peripherals.USB,
+        &mut clocks,
+        &mut peripherals.PM,
+        pins.usb_dm,
+        pins.usb_dp,
+        &mut pins.port
+    );
 
     unsafe {
         core.NVIC.set_priority(interrupt::USB, 1);
@@ -75,12 +71,20 @@ fn main() -> ! {
         &mut pins.port
     );
 
+    let mut serial = sets.uart.init(
+        &mut clocks,
+        115200.hz(),
+        peripherals.SERCOM3,
+        &mut peripherals.MCLK,
+        &mut pins.port
+    );
+
     let mut layout = Layout::new();
 
     let leds = NoLeds{};
     let mut reporter = UsbReporter {
-        usb_class: keyberon::new_class(bus_allocator, leds),
-        usb_dev: UsbDeviceBuilder::new(bus_allocator, UsbVidPid(VENDOR_ID, PRODUCT_ID))
+        usb_class: keyberon::new_class(&bus_allocator, leds),
+        usb_dev: UsbDeviceBuilder::new(&bus_allocator, UsbVidPid(VENDOR_ID, PRODUCT_ID))
             .manufacturer(MANUFACTURER)
             .product(PRODUCT)
             .serial_number(SERIAL_NUMBER)
@@ -94,6 +98,10 @@ fn main() -> ! {
 
     let device_holder = layout.device_holder();
     loop {
-        scanner.scan(&mut i2c, &device_holder, &mut reporter)
+        scanner.scan(&mut i2c, &device_holder, &mut reporter);
+
+        for c in b"hello, world\n".iter() {
+            nb::block!(serial.write(*c)).unwrap();
+        }
     }
 }
