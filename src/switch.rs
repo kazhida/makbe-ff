@@ -17,12 +17,22 @@ pub enum Shape {
     IsoEnter
 }
 
+/// スイッチの位置的情報を表すデータ
 #[derive(Debug, Clone, Copy, Eq, PartialEq)]
 pub struct Position {
+    /// 横方向
     pub x: i32,
+    /// 縦方向
     pub y: i32,
+    /// 幅
     pub w: i32,
+    /// 高さ
     pub h: i32,
+    /// 回転の中心（横方向）
+    pub rx: i32,
+    /// 回転の中心（縦方向）
+    pub ry: i32,
+    /// 回転角度（degree）
     pub r: i32
 }
 
@@ -32,12 +42,14 @@ impl Position {
         (v * 256.0) as i32
     }
 
-    pub fn new(x: f32, y: f32, w: f32, h: f32, r: f32) -> Self {
+    pub fn new(x: f32, y: f32, w: f32, h: f32, r: f32, rx: f32, ry: f32) -> Self {
         Self {
             x: Self::internal_value(x),
             y: Self::internal_value(y),
             w: Self::internal_value(w),
             h: Self::internal_value(h),
+            rx: Self::internal_value(rx),
+            ry: Self::internal_value(ry),
             r: Self::internal_value(r)
         }
     }
@@ -74,7 +86,7 @@ impl Switch {
     pub fn dummy() -> Self {
         Self {
             shape: Rectangle,
-            position: Position::new(0.0, 0.0, 0.0, 0.0, 0.0),
+            position: Position::new(0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0),
             actions: Vec::new(),
             default_action: NoOp
         }
@@ -84,7 +96,7 @@ impl Switch {
     pub fn new(x: f32, y: f32) -> Self {
         Self {
             shape: Rectangle,
-            position: Position::new(x, y, 1.0, 1.0, 0.0),
+            position: Position::new(x, y, 1.0, 1.0, 0.0, 0.0, 0.0),
             actions: Vec::new(),
             default_action: Trans
         }
@@ -105,6 +117,8 @@ impl Switch {
                     Shape::IsoEnter => 2.0,
                     Shape::Rectangle => 1.0
                 },
+                0.0,
+                0.0,
                 0.0
             ),
             actions: Vec::new(),
@@ -116,7 +130,7 @@ impl Switch {
     pub fn new_with_width(x: f32, y: f32, w: f32) -> Self {
         Self {
             shape: Rectangle,
-            position: Position::new(x, y, w, 1.0, 0.0),
+            position: Position::new(x, y, w, 1.0, 0.0, 0.0, 0.0),
             actions: Vec::new(),
             default_action: Trans
         }
@@ -126,8 +140,7 @@ impl Switch {
     pub fn new_with_size(x: f32, y: f32, w: f32, h: f32) -> Self {
         Self {
             shape: Rectangle,
-            position: Position::new(x, y, w, h, 0.0
-            ),
+            position: Position::new(x, y, w, h, 0.0, 0.0, 0.0),
             actions: Vec::new(),
             default_action: Trans
         }
@@ -136,6 +149,16 @@ impl Switch {
     /// その場で回転
     pub fn rotate(&mut self, r: f32) -> &mut Self {
         self.position.r = Position::internal_value(r);
+        self.position.rx = Position::internal_value(x);
+        self.position.ry = Position::internal_value(y);
+        self
+    }
+
+    /// 中心を指定して回転
+    pub fn rotate_at(&mut self, r: f32, rx: f32, ry: f32) -> &mut Self {
+        self.position.r = Position::internal_value(r);
+        self.position.rx = Position::internal_value(rx);
+        self.position.ry = Position::internal_value(ry);
         self
     }
 
@@ -145,11 +168,13 @@ impl Switch {
         self
     }
 
+    /// デフォルトアクションの設定
     pub fn default_action(&mut self, a: Action) -> &mut Self {
         self.default_action = a;
         self
     }
 
+    /// レイヤを指定してアクションを取得
     pub fn action_at(&'static self, layer: usize) -> Option<&'static Action> {
         if layer < self.actions.len() {
             Some(&self.actions[layer])
