@@ -2,7 +2,7 @@
 // All right reserved.
 //
 
-use crate::switch::Switch;
+use crate::key_switch::KeySwitch;
 use crate::debouncer::{Debouncer};
 use crate::device::{Device, DeviceState};
 use crate::event::EventBuffer;
@@ -20,7 +20,7 @@ use embedded_hal::blocking::i2c::{Write, WriteRead};
 pub struct TCA9554<I2C, E> {
     dev_addr: u8,
     debouncer: RefCell<Debouncer<U8>>,
-    switches: Vec<&'static Switch, U8>,
+    switches: Vec<&'static KeySwitch, U8>,
     phantom0: PhantomData<I2C>,
     phantom1: PhantomData<E>
 }
@@ -66,7 +66,7 @@ impl<I2C, E> Device<I2C, E> for TCA9554<I2C, E>
         Ok(Pins8(pressed))
     }
 
-    fn assign(&mut self, pin: usize, switch: &'static Switch) -> Result<usize, usize> {
+    fn assign(&mut self, pin: usize, switch: &'static KeySwitch) -> Result<usize, usize> {
         if pin < 8 {
             self.switches[pin] = switch;
             Ok(pin)

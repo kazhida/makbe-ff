@@ -5,7 +5,7 @@
 extern crate xiao_m0 as hal;
 extern crate paste;
 
-use makbe_ff::switch::Switch;
+use makbe_ff::key_switch::KeySwitch;
 use makbe_ff::switch_pool;
 use makbe_ff::device::{Device, DeviceHolder};
 use makbe_ff::devices::tca9555::TCA9555;
@@ -158,9 +158,9 @@ impl Layout {
         }
     }
 
-    fn apply<F>(mut switch: Switch, mut f: F) -> Switch
+    fn apply<F>(mut switch: KeySwitch, mut f: F) -> KeySwitch
         where
-            F: FnMut(&mut Switch) -> &mut Switch
+            F: FnMut(&mut KeySwitch) -> &mut KeySwitch
     {
         f(&mut switch);
         switch

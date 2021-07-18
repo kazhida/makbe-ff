@@ -6,7 +6,7 @@
 pub mod scanner;
 pub mod device;
 pub mod devices;
-pub mod switch;
+pub mod key_switch;
 pub mod event;
 pub mod debouncer;
 pub mod evaluator;

@@ -8,7 +8,7 @@ use keyberon::action::Action::*;
 use keyberon::key_code::KeyCode;
 use crate::event::KeyEvent;
 use crate::event::KeyEvent::{Released, Pressed};
-use crate::switch::Switch;
+use crate::key_switch::KeySwitch;
 use crate::reporter::Reporter;
 use heapless::Vec;
 use heapless::consts::U64;
@@ -109,7 +109,7 @@ impl Evaluator {
         }
     }
 
-    fn press_as_action(&self, switch: &'static Switch, layer: usize) -> &'static Action {
+    fn press_as_action(&self, switch: &'static KeySwitch, layer: usize) -> &'static Action {
         let action = switch.action_at(layer);
         match action {
             None => &NoOp,
@@ -124,7 +124,7 @@ impl Evaluator {
         }
     }
 
-    fn do_action(&mut self, action: &Action, switch: &'static Switch, delay: u16) {
+    fn do_action(&mut self, action: &Action, switch: &'static KeySwitch, delay: u16) {
         assert!(self.waiting.is_none());
         use Action::*;
         match *action {
@@ -187,8 +187,8 @@ impl Evaluator {
 
 #[derive(Debug, Clone, Copy)]
 enum KeyState {
-    NormalKey { keycode: KeyCode, switch: &'static Switch },
-    LayerModifier { value: usize, switch: &'static Switch },
+    NormalKey { keycode: KeyCode, switch: &'static KeySwitch },
+    LayerModifier { value: usize, switch: &'static KeySwitch },
 }
 
 impl KeyState {
@@ -206,7 +206,7 @@ impl KeyState {
         }
     }
 
-    fn release(&self, s: &Switch) -> Option<Self> {
+    fn release(&self, s: &KeySwitch) -> Option<Self> {
         match *self {
             NormalKey { switch, .. } | LayerModifier { switch, .. } if switch == s => None,
             _ => Some(*self),
@@ -223,7 +223,7 @@ impl KeyState {
 
 #[derive(Debug, Copy, Clone)]
 struct WaitingState  {
-    switch: &'static Switch,
+    switch: &'static KeySwitch,
     timeout: u16,
     hold: &'static Action,
     tap: &'static Action,

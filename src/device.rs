@@ -3,7 +3,7 @@
 //
 
 
-use crate::switch::Switch;
+use crate::key_switch::KeySwitch;
 use crate::event::EventBuffer;
 use heapless::Vec;
 use heapless::consts::U128;
@@ -45,7 +45,7 @@ pub trait Device<I2C, E>
 
 
     /// # キーの割付
-    fn assign(&mut self, pin: usize, switch: &'static Switch) -> Result<usize, usize>;
+    fn assign(&mut self, pin: usize, switch: &'static KeySwitch) -> Result<usize, usize>;
 
     /// # キーが割り付けられているか
     fn has_assigned(&self) -> bool;

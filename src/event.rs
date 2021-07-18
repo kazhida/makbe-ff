@@ -3,14 +3,14 @@
 //
 
 
-use crate::switch::Switch;
+use crate::key_switch::KeySwitch;
 use heapless::Vec;
 use heapless::consts::U64;
 
 #[derive(Debug, Clone, Copy)]
 pub enum KeyEvent {
-    Pressed(&'static Switch),
-    Released(&'static Switch)
+    Pressed(&'static KeySwitch),
+    Released(&'static KeySwitch)
 }
 
 pub struct EventBuffer {

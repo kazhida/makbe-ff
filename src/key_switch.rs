@@ -2,7 +2,6 @@
 // All right reserved.
 //
 
-use crate::switch::Shape::Rectangle;
 use keyberon::action::Action;
 use heapless::Vec;
 use heapless::consts::U4;
@@ -65,18 +64,18 @@ impl Position {
 /// タートル・グラフィックスの要素を加えたものなので、ここでの仕様とかなり違うけど、
 /// 変換処理実装時に頑張る
 #[derive(Debug, Eq, PartialEq)]
-pub struct Switch {
+pub struct KeySwitch {
     pub shape: Shape,
     pub position: Position,
     pub actions: Vec<Action, U4>,
     default_action: Action
 }
 
-impl Switch {
+impl KeySwitch {
 
     pub fn apply<F>(mut self, mut f: F) -> Self
         where
-            F: FnMut(&mut Switch) -> &mut Switch
+            F: FnMut(&mut KeySwitch) -> &mut KeySwitch
     {
         f(&mut self);
         self
@@ -85,7 +84,7 @@ impl Switch {
     /// 何もしないダミーキー（Device内の初期値とかに使用する）
     pub fn dummy() -> Self {
         Self {
-            shape: Rectangle,
+            shape: Shape::Rectangle,
             position: Position::new(0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0),
             actions: Vec::new(),
             default_action: NoOp
@@ -95,7 +94,7 @@ impl Switch {
     /// 位置を指定してインスタンスを生成
     pub fn new(x: f32, y: f32) -> Self {
         Self {
-            shape: Rectangle,
+            shape: Shape::Rectangle,
             position: Position::new(x, y, 1.0, 1.0, 0.0, 0.0, 0.0),
             actions: Vec::new(),
             default_action: Trans
@@ -129,7 +128,7 @@ impl Switch {
     /// 位置と幅を指定してインスタンスを生成
     pub fn new_with_width(x: f32, y: f32, w: f32) -> Self {
         Self {
-            shape: Rectangle,
+            shape: Shape::Rectangle,
             position: Position::new(x, y, w, 1.0, 0.0, 0.0, 0.0),
             actions: Vec::new(),
             default_action: Trans
@@ -139,7 +138,7 @@ impl Switch {
     /// 位置と大きさを指定してインスタンスを生成
     pub fn new_with_size(x: f32, y: f32, w: f32, h: f32) -> Self {
         Self {
-            shape: Rectangle,
+            shape: Shape::Rectangle,
             position: Position::new(x, y, w, h, 0.0, 0.0, 0.0),
             actions: Vec::new(),
             default_action: Trans
@@ -184,8 +183,8 @@ impl Switch {
     }
 }
 
-impl Default for Switch {
-    fn default() -> Self { Switch::dummy() }
+impl Default for KeySwitch {
+    fn default() -> Self { KeySwitch::dummy() }
 }
 
 #[macro_export]
