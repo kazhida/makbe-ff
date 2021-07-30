@@ -2,6 +2,11 @@
 target = "thumbv6m-none-eabi"
 
 [target.thumbv6m-none-eabi]
-rustflags = [
-    "-C", "link-arg=-Tlink.x",
-]
+#rustflags = [
+#    "-C", "link-arg=-Tlink.x",
+#]
+#runner = "hf2 elf"
+#runner = "probe-run --chip atsamd51p19a"
+#rustflags = [
+#    "-C", "link-arg=-Tlink.x", "-C", "link-arg=--nmagic",
+#]

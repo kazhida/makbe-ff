@@ -148,8 +148,8 @@ impl KeySwitch {
     /// その場で回転
     pub fn rotate(&mut self, r: f32) -> &mut Self {
         self.position.r = Position::internal_value(r);
-        self.position.rx = Position::internal_value(x);
-        self.position.ry = Position::internal_value(y);
+        self.position.rx = self.position.x;
+        self.position.ry = self.position.y;
         self
     }
 
@@ -198,7 +198,7 @@ macro_rules! switch_pool {
             pub struct $Type {
                 $(
                     $(#[$attr])*
-                    pub $name: Switch
+                    pub $name: KeySwitch
                 ),+
             }
         }
